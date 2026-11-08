@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 1. Change the tool name here -->
+<title>New Tool — EMS Sim Lab</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<!-- Shared EMS Sim Lab look: colors, fonts, buttons, form fields, panels -->
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  /* 2. Styles that only this tool needs go here */
+</style>
+</head>
+<body>
+<!--
+  STARTER TEMPLATE FOR A NEW EMS SIM LAB TOOL
+  ===========================================
+  How to use:
+    1. Copy this file into tools/ and rename it (e.g. tools/vitals-monitor.html).
+    2. Change the <title>, the heading and the description below.
+    3. Build the tool inside <main>.
+    4. Add one entry for it to tools.js in the site's root folder so it
+       shows on the home page.
+
+  Things you get for free from the shared files:
+    - The site top bar (renderTopbar below)
+    - Styled buttons:   <button class="btn primary">, class="btn", class="btn small"
+    - Panels:           <div class="panel">
+    - Grids:            <div class="grid g2"> (also g3, g4)
+    - Form fields:      <label> + <input>/<select>/<textarea> are pre-styled
+    - Helpers in assets/common.js:
+        toast('Saved')                      small pop-up message
+        copyText(text, 'Copied')            copy to clipboard
+        printDoc()                          print / save as PDF
+        store.get(key) / store.set(key, v)  remember settings in this browser
+        escapeHtml(text)                    make user text safe to insert as HTML
+
+  If you ask Claude to build a tool, mention this template and it will
+  follow the same structure.
+-->
+<main class="wrap">
+  <div class="page-head" style="margin-bottom:18px">
+    <h1>🧰 New Tool</h1>
+    <p class="muted" style="margin:0">One or two sentences explaining what this tool is for.</p>
+  </div>
+
+  <section class="panel">
+    <div class="grid g2">
+      <div><label for="example">Example field</label><input id="example" placeholder="Type something"></div>
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        <button class="btn primary" id="go">Do the thing</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="../assets/common.js"></script>
+<script>
+renderTopbar('../', 'home');
+
+// 3. Your tool's code goes here
+document.getElementById('go').onclick = () => {
+  const v = document.getElementById('example').value.trim();
+  toast(v ? 'You typed: ' + v : 'Type something first');
+};
+</script>
+</body>
+</html>
