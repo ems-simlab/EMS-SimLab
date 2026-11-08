@@ -1,0 +1,170 @@
+/* =====================================================================
+   EMS Sim Lab — dark site theme for the paperwork generators
+   (discharge-summary, MARS, Legal).
+
+   Loaded AFTER each generator's own <style> block. It restyles only the
+   on-screen controls (header, form panel, buttons, preview background).
+   The generated documents and all @media print rules are untouched, so
+   printouts look exactly as before. Delete the <link> to this file in a
+   generator to get its original look back.
+   ===================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+
+@media screen {
+  body {
+    --t-bg: #0e1620;
+    --t-panel: #16212e;
+    --t-panel-2: #1c2a3a;
+    --t-field: #0b121a;
+    --t-line: #2a3b4f;
+    --t-text: #e6edf3;
+    --t-muted: #8ea1b5;
+    --t-red: #e5383b;
+    --t-red-dark: #c9302c;
+    --t-amber: #f4a259;
+    --t-blue: #4ea8de;
+    --t-ui: 'Barlow', system-ui, sans-serif;
+    --t-display: 'Barlow Condensed', 'Barlow', sans-serif;
+    background: var(--t-bg);
+  }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    background: #0a1018;
+    border-bottom: 3px solid var(--t-red);
+    box-shadow: none;
+    font-family: var(--t-ui);
+  }
+  .header-title {
+    font-family: var(--t-display);
+    font-size: 1.35rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  .header-subtitle { color: var(--t-amber); font-weight: 500; }
+  .back-link {
+    color: var(--t-muted); text-decoration: none; font: 600 .88rem var(--t-ui);
+    padding: 8px 6px; margin-right: 4px; white-space: nowrap;
+  }
+  .back-link:hover { color: var(--t-text); }
+
+  .app-header .btn { font-family: var(--t-ui); font-size: .9rem; }
+  .app-header .btn-primary { background: var(--t-red); border-color: var(--t-red); color: #fff; }
+  .app-header .btn-primary:hover { background: var(--t-red-dark); border-color: var(--t-red-dark); box-shadow: none; }
+  .app-header .btn-outline { border-color: var(--t-line); color: var(--t-text); background: #16212e; }
+  .app-header .btn-outline:hover { border-color: var(--t-muted); background: #1c2a3a; }
+
+  /* ---------- Form panel ---------- */
+  .form-panel {
+    background: var(--t-panel);
+    border-right: 1px solid var(--t-line);
+    color: var(--t-text);
+    font-family: var(--t-ui);
+    color-scheme: dark;
+  }
+  .form-panel .form-section { border-bottom-color: var(--t-line); }
+  .form-panel .section-label {
+    color: var(--t-amber);
+    font-family: var(--t-display);
+    font-size: .95rem;
+    letter-spacing: .08em;
+  }
+  .form-panel .section-label::after { background: var(--t-line); }
+  .form-panel label { color: var(--t-muted); font-size: .8rem; font-weight: 600; }
+  .form-panel label .hint,
+  .form-panel .field-note,
+  .form-panel .med-count { color: var(--t-muted); }
+  .form-panel .med-count .count-num { color: var(--t-text); }
+  .form-panel .field-note b,
+  .form-panel .field-note strong,
+  .form-panel label b,
+  .form-panel label strong { color: var(--t-text); }
+  .form-panel .med-count .count-warn { color: #ff6b6b; }
+
+  .form-panel input[type=text],
+  .form-panel input[type=date],
+  .form-panel input[type=number],
+  .form-panel input:not([type]),
+  .form-panel input[type=search],
+  .form-panel input[type=time],
+  .form-panel input[type=email],
+  .form-panel input[type=tel],
+  .form-panel select,
+  .form-panel textarea {
+    background-color: var(--t-field);
+    border-color: var(--t-line);
+    color: var(--t-text);
+    font-family: var(--t-ui);
+    font-size: .9rem;
+  }
+  .form-panel input[type=time] { width: auto; min-width: 140px; padding: 8px 11px; border: 1.5px solid var(--t-line); border-radius: 8px; }
+  .form-panel input[readonly] { background: #111b26 !important; color: var(--t-muted); }
+  .form-panel input:focus,
+  .form-panel select:focus,
+  .form-panel textarea:focus {
+    border-color: var(--t-blue);
+    box-shadow: 0 0 0 3px rgba(78,168,222,.18);
+    background-color: var(--t-field);
+  }
+  .form-panel input::placeholder,
+  .form-panel textarea::placeholder { color: #5d7186; }
+  .form-panel select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238ea1b5' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  }
+  .form-panel option { background: var(--t-field); color: var(--t-text); }
+
+  /* pills (check, yes/no, level) */
+  .form-panel .check-pill,
+  .form-panel .yn-opt,
+  .form-panel .level-pill {
+    background: var(--t-field);
+    border-color: var(--t-line);
+    color: var(--t-muted);
+  }
+  .form-panel .yn-label { color: var(--t-muted); }
+  .form-panel .check-pill:hover,
+  .form-panel .yn-opt:hover,
+  .form-panel .level-pill:hover { border-color: var(--t-muted); color: var(--t-text); }
+  .form-panel .check-pill:has(input:checked),
+  .form-panel .yn-opt:has(input:checked) {
+    background: var(--t-text); border-color: var(--t-text); color: var(--t-bg);
+  }
+  /* error-level pills keep their green / orange / red "selected" colors */
+
+  /* document picker (Legal) */
+  .form-panel .doc-select-pill { background: var(--t-field); border-color: var(--t-line); }
+  .form-panel .doc-select-pill:hover { border-color: var(--t-muted); }
+  .form-panel .doc-select-pill:has(input:checked) { background: rgba(78,168,222,.10); border-color: var(--t-blue); }
+  .form-panel .doc-select-pill .pill-title { color: var(--t-text); }
+  .form-panel .doc-select-pill .pill-sub { color: var(--t-muted); }
+  .form-panel input[type=checkbox] { accent-color: var(--t-red); }
+
+  /* medication picker (Discharge, MARS) */
+  .form-panel .med-grid { background: var(--t-field); border-color: var(--t-line); }
+  .form-panel .med-item { color: var(--t-muted); }
+  .form-panel .med-item:hover { background: var(--t-panel-2); color: var(--t-text); }
+  .form-panel .med-item.is-target { background: rgba(229,56,59,.14); color: var(--t-text); }
+  .form-panel .target-dx-row { background: var(--t-panel-2); border-color: var(--t-line); color: var(--t-text); }
+  .form-panel .target-dx-name { color: var(--t-text); }
+  .form-panel .target-dx-single,
+  .form-panel .target-dx-info { color: var(--t-muted); }
+
+  /* buttons inside the form */
+  .form-panel .btn { font-family: var(--t-ui); }
+  .form-panel .generate-btn { background: var(--t-red); border-color: var(--t-red); color: #fff; font-size: 1rem; }
+  .form-panel .generate-btn:hover { background: var(--t-red-dark); border-color: var(--t-red-dark); box-shadow: none; }
+  .form-panel .btn-ghost { color: var(--t-text); border-color: var(--t-line); background: var(--t-panel-2); }
+  .form-panel .btn-ghost:hover { border-color: var(--t-muted); color: var(--t-text); }
+  .form-panel .btn-icon { background: var(--t-panel-2); border-color: var(--t-line); color: var(--t-text); }
+  .form-panel .btn-icon:hover { border-color: var(--t-muted); background: var(--t-panel-2); }
+
+  /* dark scrollbars */
+  .form-panel, .preview-panel, .med-grid { scrollbar-color: #2a3b4f transparent; }
+
+  /* ---------- Preview area (the "desk" the paper sits on) ---------- */
+  .preview-panel { background: var(--t-bg); }
+  .preview-toolbar h2 { color: var(--t-muted); font-family: var(--t-ui); }
+  .preview-toolbar .btn-ghost { color: var(--t-text); border-color: var(--t-line); background: var(--t-panel-2); }
+  .preview-empty { color: var(--t-muted); font-family: var(--t-ui); }
+  .discharge-doc, .mars-doc, .legal-doc { box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+}

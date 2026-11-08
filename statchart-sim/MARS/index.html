@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARS Generator — StatChart-Sim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B2A4A;--navy-light:#253660;--gold:#C9871E;--gold-light:#F0A830;
+  --bg:#EDF0F5;--white:#FFF;--gray-100:#F8F9FC;--gray-200:#E8ECF2;
+  --gray-300:#CDD4E0;--gray-500:#8892A4;--gray-700:#4A5568;--text:#1B2A4A;
+  --danger:#C0392B;--success:#27AE60;--warn:#E67E22;
+  --font-ui:'IBM Plex Sans',sans-serif;--font-doc:'Libre Baskerville',Georgia,serif;
+  --radius:8px;--shadow:0 2px 12px rgba(27,42,74,.10);--shadow-lg:0 8px 32px rgba(27,42,74,.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+.app-header{background:var(--navy);color:#fff;padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.header-brand{display:flex;align-items:center;gap:13px}
+.header-badge{width:40px;height:46px;flex-shrink:0}
+.header-title{font-size:1rem;font-weight:600;letter-spacing:.01em;line-height:1.2}
+.header-subtitle{font-size:.68rem;color:var(--gold-light);font-weight:300;letter-spacing:.07em;text-transform:uppercase;margin-top:2px}
+.header-actions{display:flex;gap:10px;align-items:center}
+.app-body{display:grid;grid-template-columns:430px 1fr;flex:1;height:calc(100vh - 62px);overflow:hidden}
+.form-panel{background:var(--white);overflow-y:auto;border-right:1px solid var(--gray-200)}
+.form-section{padding:18px 24px;border-bottom:1px solid var(--gray-200)}
+.section-label{font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--gray-200)}
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:.77rem;font-weight:500;color:var(--gray-700);margin-bottom:5px}
+label .hint{font-size:.68rem;color:var(--gray-500);font-weight:400}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:8px 11px;font-family:var(--font-ui);font-size:.85rem;border:1.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-100);color:var(--text);transition:border-color .15s,box-shadow .15s;outline:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,74,.08);background:#fff}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234A5568' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-row-inline{display:flex;gap:8px;align-items:flex-end}
+.field-row-inline .field{flex:1;margin-bottom:0}
+.field-note{font-size:.69rem;color:var(--gray-500);margin-top:5px;line-height:1.4}
+.check-group{display:flex;flex-wrap:wrap;gap:6px}
+.check-pill{display:inline-flex;align-items:center;padding:4px 11px;border:1.5px solid var(--gray-300);border-radius:20px;font-size:.77rem;cursor:pointer;transition:all .12s;background:var(--gray-100);user-select:none;color:var(--gray-700)}
+.check-pill input{display:none}
+.check-pill:has(input:checked){background:var(--navy);border-color:var(--navy);color:#fff}
+.check-pill:hover{border-color:var(--navy)}
+.med-search-input{margin-bottom:8px}
+.med-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;max-height:270px;overflow-y:auto;padding:8px;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:var(--gray-100)}
+.med-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;font-size:.77rem;cursor:pointer;transition:background .1s;color:var(--gray-700);user-select:none}
+.med-item:hover{background:var(--gray-200)}
+.med-item input[type=checkbox]{width:14px;height:14px;flex-shrink:0;accent-color:var(--navy);cursor:pointer}
+.med-item.is-target{background:rgba(27,42,74,.08);color:var(--navy);font-weight:600}
+.med-count{font-size:.72rem;color:var(--gray-500);margin-bottom:6px}
+.med-count .count-num{font-weight:700;color:var(--navy)}
+.med-count .count-warn{color:var(--danger);font-weight:600}
+.target-dx-list{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.target-dx-list:empty{display:none}
+.target-dx-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:6px 8px;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:var(--white);font-size:.77rem}
+.target-dx-name{font-weight:600;color:var(--navy);min-width:110px}
+.target-dx-row select{flex:1;min-width:150px;font-size:.75rem;padding:3px 6px}
+.target-dx-single{flex:1;min-width:150px;color:var(--gray-700)}
+.target-dx-info{flex-basis:100%;font-size:.7rem;color:var(--gray-500)}
+.level-group{display:flex;gap:8px}
+.level-pill{flex:1;text-align:center;padding:7px 4px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:.77rem;font-weight:600;cursor:pointer;transition:all .12s;background:var(--gray-100);user-select:none}
+.level-pill input{display:none}
+.level-pill:has(input:checked)[data-level=none]{background:var(--success);border-color:var(--success);color:#fff}
+.level-pill:has(input:checked)[data-level=subtle]{background:var(--warn);border-color:var(--warn);color:#fff}
+.level-pill:has(input:checked)[data-level=chaos]{background:var(--danger);border-color:var(--danger);color:#fff}
+.level-pill:hover{border-color:var(--navy)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:var(--radius);font-family:var(--font-ui);font-size:.82rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-primary:hover{background:var(--gold-light);border-color:var(--gold-light);transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,135,30,.4)}
+.btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.btn-outline:hover{background:rgba(255,255,255,.1);border-color:#fff}
+.btn-ghost{background:transparent;color:var(--gray-700);border-color:var(--gray-300);padding:6px 14px;font-size:.8rem}
+.btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+.btn-icon{padding:7px 10px;background:var(--gray-100);border:1.5px solid var(--gray-300);border-radius:var(--radius);cursor:pointer;font-size:.85rem;transition:all .12s;flex-shrink:0}
+.btn-icon:hover{border-color:var(--navy);background:#fff}
+.generate-btn{width:100%;justify-content:center;padding:13px;font-size:.92rem;background:var(--navy);color:#fff;border-color:var(--navy);margin:16px 0 2px}
+.generate-btn:hover{background:var(--navy-light);transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+.preview-panel{overflow-y:auto;background:#D8DCE5;padding:28px;display:flex;flex-direction:column;align-items:center}
+.preview-toolbar{width:100%;max-width:960px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.preview-toolbar h2{font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-500)}
+.preview-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray-500);text-align:center;gap:14px;padding:60px 20px}
+.preview-empty p{font-size:.86rem;max-width:280px;line-height:1.5}
+.scenario-badge{background:var(--navy);color:#fff;font-size:8pt;font-family:var(--font-ui);padding:5px 12px;border-radius:3px;margin-bottom:16px;display:inline-block;letter-spacing:.04em;max-width:960px;width:100%}
+/* MARS DOCUMENT */
+.mars-doc{width:100%;max-width:960px;background:#fff;box-shadow:var(--shadow-lg);border-radius:2px;font-family:var(--font-doc);color:#111;padding:28px 32px;font-size:9pt;line-height:1.4}
+.mars-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:16px}
+.mars-header-left{flex:1}
+.mars-doc-title{font-size:17pt;font-weight:700;line-height:1.1}
+.mars-subtitle{font-size:7.5pt;color:#555;font-family:var(--font-ui);margin-bottom:8px;font-style:italic}
+.mars-logo{width:78px;height:auto;flex-shrink:0}
+.mars-info-table{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px}
+.mars-info-table td{padding:3px 6px 3px 0;vertical-align:top}
+.mars-divider{border:none;border-top:1.5px solid #000;margin:6px 0}
+.mars-compliance-bar{font-family:var(--font-ui);font-size:7.5pt;padding:4px 10px;border-radius:4px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px}
+.compliance-compliant{background:#edfbf3;border:1px solid #27ae60;color:#1a7a42}
+.compliance-mostly{background:#fff9ed;border:1px solid #e67e22;color:#9a5200}
+.compliance-noncompliant{background:#fef0ee;border:1px solid #c0392b;color:#7a1a10}
+.mars-table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:10px}
+.mars-table thead th{background:var(--navy);color:#fff;padding:4px 3px;border:1px solid #000;text-align:center;font-size:6.5pt;letter-spacing:.02em;font-family:var(--font-ui);line-height:1.3}
+.mars-th-med{text-align:left!important;min-width:190px;padding-left:6px!important}
+.mars-th-rt{width:34px}
+.mars-th-time{width:48px}
+.mars-day-head{width:54px;font-size:6.5pt}
+.mars-scenario-day{background:#a93226!important}
+.scenario-day-tag{font-size:5pt;display:block;letter-spacing:.03em;margin-top:1px;opacity:.9}
+.mars-table tbody tr.mars-target{background:rgba(27,42,74,.035)}
+.mars-sep-row td{height:3px!important;background:var(--gray-200);padding:0!important;border:none!important}
+.mars-med-name{text-align:left;font-weight:700;font-size:7.5pt;padding:3px 5px 3px 4px;vertical-align:top;border:1px solid #aaa;line-height:1.3}
+.mars-med-dose{display:block;font-weight:400;font-size:6.5pt;color:#555;font-family:var(--font-ui);margin-top:1px}
+.mars-route{text-align:center;font-size:7pt;border:1px solid #aaa;vertical-align:middle}
+.mars-time{text-align:center;font-weight:600;font-size:7pt;border:1px solid #aaa;vertical-align:middle;padding:2px}
+.mars-cell{text-align:center;border:1px solid #d0d0d0;height:20px;vertical-align:middle;padding:1px}
+.mars-cell.mars-pending{background:#f5f6f8}
+.mars-pending-sym{color:#b8c0cc;font-size:10pt;line-height:1;display:block;margin-top:-1px}
+.mars-cell.mars-last-day{border:1.5px solid #a93226!important;background:rgba(169,50,38,.03)}
+.mars-init{font-weight:700;font-size:7pt;color:var(--navy)}
+.mars-circle{color:#bbb;font-size:11pt;line-height:1;display:block;margin-top:-1px}
+.mars-err-flag{margin-left:3px;font-size:7pt}
+.mars-section-head{font-family:var(--font-ui);font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);border-bottom:1.5px solid var(--navy);padding-bottom:3px;margin:10px 0 6px}
+.mars-prn-table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:10px}
+.mars-prn-table th{background:#2c3e50;color:#fff;padding:4px 6px;font-size:6.5pt;font-family:var(--font-ui);letter-spacing:.04em;text-align:left;border:1px solid #000}
+.mars-prn-table td{padding:4px 6px;border:1px solid #ccc;vertical-align:top}
+.mars-prn-table tr:nth-child(even) td{background:#f9f9f9}
+.prn-init{font-weight:700;text-align:center}
+.mars-legend{font-family:var(--font-ui);font-size:7pt;color:#555;margin-top:8px;padding:6px 8px;background:#f8f9fc;border-radius:4px;line-height:1.7;border:1px solid var(--gray-200)}
+.doc-footer{margin-top:10px;padding-top:8px;border-top:1px solid #ccc;font-family:var(--font-ui);font-size:7.5pt;color:#888;text-align:center;letter-spacing:.03em}
+@media print{
+  @page{size:letter landscape;margin:0.4in 0.45in}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff}
+  .app-header,.form-panel,.preview-toolbar,.scenario-badge{display:none!important}
+  .app-body{display:block;height:auto;overflow:visible}
+  .preview-panel{padding:0;background:#fff;display:block;overflow:visible}
+  .mars-doc{box-shadow:none;max-width:100%;padding:0}
+  .mars-compliance-bar .screen-flag,.mars-err-flag{display:none!important}
+}
+@media(max-width:900px){.app-body{grid-template-columns:1fr;height:auto}}
+</style>
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/tool-theme.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-brand">
+    <img class="header-badge" id="headerLogo" alt="StatChart-Sim logo">
+    <div>
+      <div class="header-title">MARS Generator</div>
+      <div class="header-subtitle">StatChart-Sim · Medication Administration Record · Simulation</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a class="back-link" href="../index.html">← StatChart-Sim</a>
+    <button class="btn btn-outline" onclick="resetForm()">↺ Reset</button>
+    <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="form-panel">
+
+    <div class="form-section">
+      <div class="section-label">Scenario Info</div>
+      <div class="field">
+        <label>Simulation Scenario Name</label>
+        <input type="text" id="scenarioName" placeholder="e.g. Unit 4 — Cardiac Sim #2" oninput="liveRender()">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Patient Demographics</div>
+      <div class="field">
+        <label>Patient Name <span class="hint">(simulation only)</span></label>
+        <input type="text" id="patientName" placeholder="Simulated patient name" oninput="liveRender()">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date of Birth</label>
+          <input type="date" id="dob" onchange="calcAge();liveRender()">
+        </div>
+        <div class="field">
+          <label>Age <span class="hint">(auto)</span></label>
+          <input type="text" id="ageDisplay" readonly placeholder="—" style="background:#f0f2f5;cursor:default">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Simulation Date <span class="hint">(Day 7 of MARS)</span></label>
+          <input type="date" id="simDate" onchange="liveRender()">
+        </div>
+        <div class="field">
+          <label>Gender</label>
+          <select id="gender" onchange="liveRender()">
+            <option value="">— Select —</option>
+            <option>Male</option><option>Female</option><option>Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Facility &amp; Provider</div>
+      <div class="field">
+        <label>Facility Name</label>
+        <input type="text" id="facilityName" placeholder="e.g. County General Hospital" oninput="liveRender()">
+      </div>
+      <div class="field">
+        <label>Provider</label>
+        <select id="provider" onchange="liveRender()">
+          <option value="">— Select provider —</option>
+          <option>Dr. Henry Jones, Jr.</option>
+          <option>Dr. Niels Bohr</option>
+          <option>Dr. Janet Romulo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Record #</label>
+        <div class="field-row-inline">
+          <div class="field"><input type="text" id="recordNum" readonly style="background:#f0f2f5;cursor:default;font-family:var(--font-ui);font-weight:600"></div>
+          <button class="btn-icon" onclick="genRecord()" title="Generate new Record #">↻</button>
+        </div>
+        <div class="field-note">Auto-generated. Click ↻ to re-roll.</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Clinical Data</div>
+
+      <div class="field">
+        <label>Patient Acuity at Discharge</label>
+        <select id="acuity" onchange="liveRender()">
+          <option value="">— Select —</option>
+          <option value="good">Stable / Good (Ambulatory)</option>
+          <option value="fair">Stable / Fair (Requires Assistance)</option>
+          <option value="guarded">Guarded (High Risk of Re-admission)</option>
+          <option value="unchanged">Unchanged (Awaiting Further Diagnostics)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Allergies</label>
+        <div class="check-group" id="allergyGroup">
+          <label class="check-pill"><input type="checkbox" value="Latex" onchange="liveRender()">Latex</label>
+          <label class="check-pill"><input type="checkbox" value="Tree Nuts" onchange="liveRender()">Tree Nuts</label>
+          <label class="check-pill"><input type="checkbox" value="Pollen" onchange="liveRender()">Pollen</label>
+          <label class="check-pill"><input type="checkbox" value="Cinnamon" onchange="liveRender()">Cinnamon</label>
+          <label class="check-pill"><input type="checkbox" value="Sulfa Drugs" onchange="liveRender()">Sulfa Drugs</label>
+          <label class="check-pill"><input type="checkbox" value="Penicillin" onchange="liveRender()">Penicillin</label>
+          <label class="check-pill"><input type="checkbox" value="Amoxicillin" onchange="liveRender()">Amoxicillin</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Medications</div>
+      <div class="field">
+        <label>Medication Error Level</label>
+        <div class="level-group">
+          <label class="level-pill" data-level="none"><input type="radio" name="medError" value="none" checked onchange="liveRender()">None</label>
+          <label class="level-pill" data-level="subtle"><input type="radio" name="medError" value="subtle" onchange="liveRender()">Subtle</label>
+          <label class="level-pill" data-level="chaos"><input type="radio" name="medError" value="chaos" onchange="liveRender()">Chaos</label>
+        </div>
+        <div class="field-note">Applies dose errors to target meds only. Errors are flagged on screen but hidden on the printed copy.</div>
+      </div>
+      <div class="field">
+        <label>Background Medication Noise</label>
+        <select id="medNoise" onchange="liveRender()">
+          <option value="none">None — Target meds only</option>
+          <option value="moderate">Moderate — +5 to 10 extra meds</option>
+          <option value="complex">Complex — +10 to 25 extra meds</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Target / Anchor Medications <span class="hint">(select 1–5)</span></label>
+        <input type="text" class="med-search-input" id="medSearch" placeholder="🔍  Search medications…" oninput="filterMeds()">
+        <div class="med-count" id="medCount"><span class="count-num">0</span> of 5 target meds selected</div>
+        <div class="med-grid" id="medGrid"></div>
+        <div class="target-dx-list" id="targetDxList"></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">MARS Settings</div>
+      <div class="field">
+        <label>Compliance Preset</label>
+        <select id="marsCompliance">
+          <option value="compliant">Compliant — ≥95% of doses taken</option>
+          <option value="mostly" selected>Mostly Compliant — ~75–80% taken</option>
+          <option value="noncompliant">Non-Compliant — ~40–50%, worsening</option>
+        </select>
+        <div class="field-note"><b>Non-Compliant</b> clusters missed doses in the last 2 days — the deterioration story leading to the sim event on Day 7.</div>
+      </div>
+      <div class="field">
+        <label>Staff / Caregiver Initials <span class="hint">(shown in administered cells)</span></label>
+        <input type="text" id="marsInitials" placeholder="RN" maxlength="4" value="RN" style="max-width:80px">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>Time of EMS Call <span class="hint">(doses on sim day at/after this time shown as not yet due)</span></label>
+        <input type="time" id="callTime" value="14:00" style="max-width:130px">
+      </div>
+      <button class="btn generate-btn" onclick="generateMARS()">⚡ Generate MARS Sheet</button>
+    </div>
+
+  </aside>
+
+  <main class="preview-panel">
+    <div class="preview-toolbar">
+      <h2>Live Preview</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="generateMARS()">↻ Regenerate</button>
+        <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
+      </div>
+    </div>
+    <div id="previewContent">
+      <div class="preview-empty">
+        <svg width="60" height="60" viewBox="0 0 64 64" fill="none">
+          <rect x="8" y="4" width="40" height="52" rx="3" stroke="#8892A4" stroke-width="2"/>
+          <line x1="16" y1="16" x2="40" y2="16" stroke="#8892A4" stroke-width="2"/>
+          <line x1="16" y1="24" x2="40" y2="24" stroke="#8892A4" stroke-width="2"/>
+          <line x1="16" y1="32" x2="32" y2="32" stroke="#8892A4" stroke-width="2"/>
+          <circle cx="48" cy="48" r="12" fill="#E8ECF2" stroke="#8892A4" stroke-width="2"/>
+          <line x1="48" y1="43" x2="48" y2="53" stroke="#8892A4" stroke-width="2"/>
+          <line x1="43" y1="48" x2="53" y2="48" stroke="#8892A4" stroke-width="2"/>
+        </svg>
+        <p>Fill in the form and click <strong>Generate MARS Sheet</strong>. The printable document appears here.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+
+const ALL_MEDS=["Acetaminophen","Albuterol","Allopurinol","Alprazolam","Amiodarone","Amitriptyline","Amlodipine","Amoxapine","Amoxicillin","Apixaban","Aspirin","Atenolol","Atorvastatin","Azithromycin","Baclofen","Bupropion","Carvedilol","Celecoxib","Cephalexin","Citalopram","Clomipramine","Clonazepam","Clonidine","Clopidogrel","Cyclobenzaprine","Desipramine","Digoxin","Diltiazem","Donepezil","Doxepin","Duloxetine","Enalapril","Escitalopram","Famotidine","Fluoxetine","Furosemide","Gabapentin","Glipizide","Hydralazine","Hydrochlorothiazide","Hydrocodone/APAP","Ibuprofen","Imipramine","Insulin Glargine","Isosorbide Mononitrate","Levetiracetam","Levothyroxine","Lisinopril","Lithium","Lorazepam","Losartan","Meloxicam","Metformin","Methylprednisolone","Metoprolol Succinate","Montelukast","Naproxen","Nitroglycerin SL","Nortriptyline","Omeprazole","Ondansetron","Oxycodone/APAP","Pantoprazole","Paroxetine","Phenytoin","Potassium Chloride","Pravastatin","Prednisone","Protriptyline","Quetiapine","Rivaroxaban","Sertraline","Spironolactone","Tamsulosin","Topiramate","Tramadol","Trazodone","Trimipramine","Valsartan","Venlafaxine","Warfarin"];const MED_DB={
+"Amitriptyline":{str:"25 mg",route:"PO",freq:"at bedtime",base:25,unit:"mg"},
+"Amoxapine":{str:"50 mg",route:"PO",freq:"BID",base:50,unit:"mg"},
+"Clomipramine":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Desipramine":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Doxepin":{str:"25 mg",route:"PO",freq:"at bedtime",base:25,unit:"mg"},
+"Imipramine":{str:"25 mg",route:"PO",freq:"at bedtime",base:25,unit:"mg"},
+"Nortriptyline":{str:"25 mg",route:"PO",freq:"at bedtime",base:25,unit:"mg"},
+"Protriptyline":{str:"5 mg",route:"PO",freq:"TID",base:5,unit:"mg"},
+"Trimipramine":{str:"25 mg",route:"PO",freq:"at bedtime",base:25,unit:"mg"},
+"Acetaminophen":{str:"500 mg",route:"PO",freq:"q6h PRN pain/fever",base:500,unit:"mg"},
+"Albuterol":{str:"2.5 mg",route:"NEB",freq:"q4–6h PRN wheezing",base:2.5,unit:"mg"},
+"Allopurinol":{str:"300 mg",route:"PO",freq:"once daily",base:300,unit:"mg"},
+"Alprazolam":{str:"0.25 mg",route:"PO",freq:"TID PRN anxiety",base:0.25,unit:"mg"},
+"Amiodarone":{str:"200 mg",route:"PO",freq:"once daily",base:200,unit:"mg"},
+"Amlodipine":{str:"5 mg",route:"PO",freq:"once daily",base:5,unit:"mg"},
+"Amoxicillin":{str:"500 mg",route:"PO",freq:"TID × 10 days",base:500,unit:"mg"},
+"Apixaban":{str:"5 mg",route:"PO",freq:"BID",base:5,unit:"mg"},
+"Aspirin":{str:"81 mg",route:"PO",freq:"once daily",base:81,unit:"mg"},
+"Atenolol":{str:"50 mg",route:"PO",freq:"once daily",base:50,unit:"mg"},
+"Atorvastatin":{str:"40 mg",route:"PO",freq:"every evening",base:40,unit:"mg"},
+"Azithromycin":{str:"250 mg",route:"PO",freq:"once daily × 5 days",base:250,unit:"mg"},
+"Baclofen":{str:"10 mg",route:"PO",freq:"TID",base:10,unit:"mg"},
+"Bupropion":{str:"150 mg",route:"PO",freq:"BID",base:150,unit:"mg"},
+"Carvedilol":{str:"6.25 mg",route:"PO",freq:"BID with meals",base:6.25,unit:"mg"},
+"Celecoxib":{str:"200 mg",route:"PO",freq:"once daily",base:200,unit:"mg"},
+"Cephalexin":{str:"500 mg",route:"PO",freq:"QID × 7 days",base:500,unit:"mg"},
+"Citalopram":{str:"20 mg",route:"PO",freq:"once daily",base:20,unit:"mg"},
+"Clonazepam":{str:"0.5 mg",route:"PO",freq:"BID",base:0.5,unit:"mg"},
+"Clonidine":{str:"0.1 mg",route:"PO",freq:"BID",base:0.1,unit:"mg"},
+"Clopidogrel":{str:"75 mg",route:"PO",freq:"once daily",base:75,unit:"mg"},
+"Cyclobenzaprine":{str:"5 mg",route:"PO",freq:"TID PRN muscle spasm",base:5,unit:"mg"},
+"Digoxin":{str:"0.125 mg",route:"PO",freq:"once daily",base:0.125,unit:"mg"},
+"Diltiazem":{str:"120 mg",route:"PO",freq:"BID",base:120,unit:"mg"},
+"Donepezil":{str:"5 mg",route:"PO",freq:"every bedtime",base:5,unit:"mg"},
+"Duloxetine":{str:"30 mg",route:"PO",freq:"once daily",base:30,unit:"mg"},
+"Enalapril":{str:"5 mg",route:"PO",freq:"BID",base:5,unit:"mg"},
+"Escitalopram":{str:"10 mg",route:"PO",freq:"once daily",base:10,unit:"mg"},
+"Famotidine":{str:"20 mg",route:"PO",freq:"BID",base:20,unit:"mg"},
+"Fluoxetine":{str:"20 mg",route:"PO",freq:"once daily",base:20,unit:"mg"},
+"Furosemide":{str:"40 mg",route:"PO",freq:"once daily",base:40,unit:"mg"},
+"Gabapentin":{str:"300 mg",route:"PO",freq:"TID",base:300,unit:"mg"},
+"Glipizide":{str:"5 mg",route:"PO",freq:"once daily before breakfast",base:5,unit:"mg"},
+"Hydralazine":{str:"25 mg",route:"PO",freq:"TID",base:25,unit:"mg"},
+"Hydrochlorothiazide":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Hydrocodone/APAP":{str:"5/325 mg",route:"PO",freq:"q6h PRN pain",base:5,unit:"mg"},
+"Ibuprofen":{str:"400 mg",route:"PO",freq:"q6h PRN with food",base:400,unit:"mg"},
+"Insulin Glargine":{str:"10 units",route:"SQ",freq:"every bedtime",base:10,unit:"units"},
+"Isosorbide Mononitrate":{str:"30 mg",route:"PO",freq:"once daily (morning)",base:30,unit:"mg"},
+"Levetiracetam":{str:"500 mg",route:"PO",freq:"BID",base:500,unit:"mg"},
+"Levothyroxine":{str:"50 mcg",route:"PO",freq:"daily, empty stomach",base:50,unit:"mcg"},
+"Lisinopril":{str:"10 mg",route:"PO",freq:"once daily",base:10,unit:"mg"},
+"Lithium":{str:"300 mg",route:"PO",freq:"TID",base:300,unit:"mg"},
+"Lorazepam":{str:"0.5 mg",route:"PO",freq:"BID PRN anxiety",base:0.5,unit:"mg"},
+"Losartan":{str:"50 mg",route:"PO",freq:"once daily",base:50,unit:"mg"},
+"Meloxicam":{str:"15 mg",route:"PO",freq:"once daily with food",base:15,unit:"mg"},
+"Metformin":{str:"500 mg",route:"PO",freq:"BID with meals",base:500,unit:"mg"},
+"Methylprednisolone":{str:"4 mg",route:"PO",freq:"once daily",base:4,unit:"mg"},
+"Metoprolol Succinate":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Montelukast":{str:"10 mg",route:"PO",freq:"every bedtime",base:10,unit:"mg"},
+"Naproxen":{str:"250 mg",route:"PO",freq:"BID with food",base:250,unit:"mg"},
+"Nitroglycerin SL":{str:"0.4 mg",route:"SL",freq:"PRN chest pain (q5min × 3)",base:0.4,unit:"mg"},
+"Omeprazole":{str:"20 mg",route:"PO",freq:"once daily before meal",base:20,unit:"mg"},
+"Ondansetron":{str:"4 mg",route:"PO",freq:"q8h PRN nausea",base:4,unit:"mg"},
+"Oxycodone/APAP":{str:"5/325 mg",route:"PO",freq:"q6h PRN pain",base:5,unit:"mg"},
+"Pantoprazole":{str:"40 mg",route:"PO",freq:"daily before breakfast",base:40,unit:"mg"},
+"Paroxetine":{str:"20 mg",route:"PO",freq:"once daily",base:20,unit:"mg"},
+"Phenytoin":{str:"100 mg",route:"PO",freq:"TID",base:100,unit:"mg"},
+"Potassium Chloride":{str:"20 mEq",route:"PO",freq:"BID",base:20,unit:"mEq"},
+"Pravastatin":{str:"40 mg",route:"PO",freq:"every evening",base:40,unit:"mg"},
+"Prednisone":{str:"10 mg",route:"PO",freq:"once daily",base:10,unit:"mg"},
+"Quetiapine":{str:"25 mg",route:"PO",freq:"every bedtime PRN",base:25,unit:"mg"},
+"Rivaroxaban":{str:"20 mg",route:"PO",freq:"daily with evening meal",base:20,unit:"mg"},
+"Sertraline":{str:"50 mg",route:"PO",freq:"once daily",base:50,unit:"mg"},
+"Spironolactone":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Tamsulosin":{str:"0.4 mg",route:"PO",freq:"every bedtime",base:0.4,unit:"mg"},
+"Topiramate":{str:"25 mg",route:"PO",freq:"BID",base:25,unit:"mg"},
+"Tramadol":{str:"50 mg",route:"PO",freq:"q6h PRN pain",base:50,unit:"mg"},
+"Trazodone":{str:"50 mg",route:"PO",freq:"every bedtime PRN",base:50,unit:"mg"},
+"Valsartan":{str:"80 mg",route:"PO",freq:"once daily",base:80,unit:"mg"},
+"Venlafaxine":{str:"75 mg",route:"PO",freq:"once daily",base:75,unit:"mg"},
+"Warfarin":{str:"5 mg",route:"PO",freq:"once daily (INR monitoring)",base:5,unit:"mg"}
+};;
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function calcAge(){const dob=document.getElementById('dob').value,el=document.getElementById('ageDisplay');if(!dob){el.value='';return}const t=new Date(),b=new Date(dob);let a=t.getFullYear()-b.getFullYear();const m=t.getMonth()-b.getMonth();if(m<0||(m===0&&t.getDate()<b.getDate()))a--;el.value=a+' yrs'}
+function fmtDate(s){if(!s)return'';const[y,m,d]=s.split('-');const M=['January','February','March','April','May','June','July','August','September','October','November','December'];return`${M[+m-1]} ${+d}, ${y}`}
+function genRecord(){document.getElementById('recordNum').value='MR-'+String(Math.floor(Math.random()*9000000)+1000000);}
+
+
+// ── Medication → Diagnosis mapping ───────────────────────
+const MED_DIAGNOSES={
+"Amitriptyline":["Major Depressive Disorder","Neuropathic Pain","Migraine Prophylaxis"],
+"Amoxapine":["Major Depressive Disorder"],
+"Clomipramine":["Obsessive-Compulsive Disorder"],
+"Desipramine":["Major Depressive Disorder"],
+"Doxepin":["Depression with Anxiety","Insomnia"],
+"Imipramine":["Major Depressive Disorder"],
+"Nortriptyline":["Major Depressive Disorder","Neuropathic Pain"],
+"Protriptyline":["Major Depressive Disorder"],
+"Trimipramine":["Major Depressive Disorder"],
+"Acetaminophen":["Pain Management"],
+"Albuterol":["Asthma","COPD"],
+"Allopurinol":["Gout","Hyperuricemia"],
+"Alprazolam":["Anxiety Disorder","Panic Disorder"],
+"Amiodarone":["Atrial Fibrillation","Ventricular Arrhythmia"],
+"Amlodipine":["Hypertension","Coronary Artery Disease"],
+"Amoxicillin":["Bacterial Infection"],
+"Apixaban":["Atrial Fibrillation","DVT/PE Anticoagulation"],
+"Aspirin":["Coronary Artery Disease","Cardiovascular Risk Reduction"],
+"Atenolol":["Hypertension","Angina"],
+"Atorvastatin":["Hyperlipidemia","Cardiovascular Disease"],
+"Azithromycin":["Bacterial Infection","Community-Acquired Pneumonia"],
+"Baclofen":["Muscle Spasm","Spasticity"],
+"Bupropion":["Major Depressive Disorder","Smoking Cessation"],
+"Carvedilol":["Heart Failure","Hypertension"],
+"Celecoxib":["Osteoarthritis","Rheumatoid Arthritis"],
+"Cephalexin":["Bacterial Infection","Skin & Soft Tissue Infection"],
+"Citalopram":["Major Depressive Disorder","Anxiety"],
+"Clonazepam":["Seizure Disorder","Anxiety Disorder"],
+"Clonidine":["Hypertension"],
+"Clopidogrel":["Coronary Artery Disease","Stroke Prevention"],
+"Cyclobenzaprine":["Muscle Spasm"],
+"Digoxin":["Heart Failure","Atrial Fibrillation"],
+"Diltiazem":["Atrial Fibrillation","Hypertension","Angina"],
+"Donepezil":["Alzheimer's Dementia"],
+"Duloxetine":["Major Depressive Disorder","Neuropathic Pain"],
+"Enalapril":["Hypertension","Heart Failure"],
+"Escitalopram":["Major Depressive Disorder","Generalized Anxiety Disorder"],
+"Famotidine":["GERD","Peptic Ulcer Disease"],
+"Fluoxetine":["Major Depressive Disorder","Anxiety Disorder"],
+"Furosemide":["Heart Failure","Edema","Hypertension"],
+"Gabapentin":["Neuropathic Pain","Seizure Disorder"],
+"Glipizide":["Type 2 Diabetes Mellitus"],
+"Hydralazine":["Hypertension","Heart Failure"],
+"Hydrochlorothiazide":["Hypertension","Edema"],
+"Hydrocodone/APAP":["Pain Management"],
+"Ibuprofen":["Pain Management","Inflammation"],
+"Insulin Glargine":["Diabetes Mellitus"],
+"Isosorbide Mononitrate":["Angina","Coronary Artery Disease"],
+"Levetiracetam":["Seizure Disorder","Epilepsy"],
+"Levothyroxine":["Hypothyroidism"],
+"Lisinopril":["Hypertension","Heart Failure","Chronic Kidney Disease"],
+"Lithium":["Bipolar Disorder"],
+"Lorazepam":["Anxiety Disorder","Seizure Disorder"],
+"Losartan":["Hypertension","Heart Failure","Chronic Kidney Disease"],
+"Meloxicam":["Osteoarthritis","Rheumatoid Arthritis"],
+"Metformin":["Type 2 Diabetes Mellitus"],
+"Methylprednisolone":["Inflammatory Condition","Autoimmune Disease"],
+"Metoprolol Succinate":["Hypertension","Heart Failure","Atrial Fibrillation"],
+"Montelukast":["Asthma","Allergic Rhinitis"],
+"Naproxen":["Pain Management","Osteoarthritis"],
+"Nitroglycerin SL":["Angina","Coronary Artery Disease"],
+"Omeprazole":["GERD","Peptic Ulcer Disease"],
+"Ondansetron":["Nausea & Vomiting"],
+"Oxycodone/APAP":["Pain Management"],
+"Pantoprazole":["GERD","Peptic Ulcer Disease"],
+"Paroxetine":["Major Depressive Disorder","Anxiety Disorder"],
+"Phenytoin":["Seizure Disorder","Epilepsy"],
+"Potassium Chloride":["Hypokalemia","Heart Failure"],
+"Pravastatin":["Hyperlipidemia","Cardiovascular Disease"],
+"Prednisone":["Inflammatory Condition","Asthma/COPD","Autoimmune Disease"],
+"Quetiapine":["Bipolar Disorder","Major Depressive Disorder","Schizophrenia"],
+"Rivaroxaban":["Atrial Fibrillation","DVT/PE Anticoagulation"],
+"Sertraline":["Major Depressive Disorder","Anxiety Disorder"],
+"Spironolactone":["Heart Failure","Hypertension"],
+"Tamsulosin":["Benign Prostatic Hyperplasia (BPH)"],
+"Topiramate":["Seizure Disorder","Migraine Prophylaxis"],
+"Tramadol":["Pain Management"],
+"Trazodone":["Major Depressive Disorder","Insomnia"],
+"Valsartan":["Hypertension","Heart Failure"],
+"Venlafaxine":["Major Depressive Disorder","Anxiety Disorder"],
+"Warfarin":["Atrial Fibrillation","DVT/PE","Anticoagulation Therapy"]
+};
+
+// ── Per-diagnosis dose overrides ─────────────────────────
+// Only needed where the dose/frequency differs by indication.
+// Any field left out falls back to the MED_DB entry.
+const MED_DX_DOSE={
+"Amitriptyline":{"Neuropathic Pain":{str:"10 mg",base:10},"Migraine Prophylaxis":{str:"10 mg",base:10}},
+"Doxepin":{"Insomnia":{str:"6 mg",base:6}},
+"Nortriptyline":{"Neuropathic Pain":{str:"10 mg",base:10}},
+"Trazodone":{"Major Depressive Disorder":{str:"150 mg",base:150,freq:"at bedtime"}},
+"Quetiapine":{"Bipolar Disorder":{str:"300 mg",base:300,freq:"at bedtime"},
+              "Major Depressive Disorder":{str:"150 mg",base:150,freq:"at bedtime"},
+              "Schizophrenia":{str:"200 mg",base:200,freq:"BID"}}
+};
+
+// Pick ONE diagnosis per med. Seeded by patient + med name so the choice
+// stays the same across live re-renders but changes for a new patient.
+function pickDiagnosis(name,seedKey){
+  const list=MED_DIAGNOSES[name]||[];
+  if(list.length<=1)return list[0]||'';
+  const r=makeSRNG(strHash(seedKey+'|'+name))();
+  return list[Math.floor(r*list.length)];
+}
+
+// ── Per-target-med diagnosis choice ──────────────────────
+// TARGET_DX[name] = chosen diagnosis, or '' / missing for Random.
+const TARGET_DX={};
+function resolveDx(name,seedKey){return TARGET_DX[name]||pickDiagnosis(name,seedKey);}
+function doseFor(name,dx){const b=MED_DB[name];if(!b)return'';const d={...b,...((MED_DX_DOSE[name]||{})[dx]||{})};return`${d.str} ${d.route} ${d.freq}`;}
+function renderTargetDxList(){
+  const box=document.getElementById('targetDxList');if(!box)return;
+  const targets=getTargetMeds().slice(0,5);
+  Object.keys(TARGET_DX).forEach(k=>{if(!targets.includes(k))delete TARGET_DX[k];});
+  box.innerHTML=targets.map(m=>{
+    const list=MED_DIAGNOSES[m]||[];
+    let ctl;
+    if(list.length>1){
+      const cur=TARGET_DX[m]||'';
+      ctl=`<select data-med="${esc(m)}" onchange="setTargetDx(this)"><option value="">Random diagnosis</option>${list.map(d=>`<option value="${esc(d)}"${d===cur?' selected':''}>${esc(d)}</option>`).join('')}</select>`;
+    }else{
+      ctl=`<span class="target-dx-single">${esc(list[0]||'No diagnosis listed')}</span>`;
+    }
+    return`<div class="target-dx-row"><span class="target-dx-name">${esc(m)}</span>${ctl}<span class="target-dx-info" data-info="${esc(m)}"></span></div>`;
+  }).join('');
+  updateTargetDxInfo();
+}
+function setTargetDx(sel){const m=sel.dataset.med;if(sel.value)TARGET_DX[m]=sel.value;else delete TARGET_DX[m];updateTargetDxInfo();liveRender();}
+function updateTargetDxInfo(){
+  const seedKey=document.getElementById('patientName').value||'';
+  document.querySelectorAll('.target-dx-info').forEach(el=>{
+    const m=el.dataset.info,dx=resolveDx(m,seedKey),random=!TARGET_DX[m]&&(MED_DIAGNOSES[m]||[]).length>1;
+    el.textContent=(random?`Random pick for this patient: ${dx} · `:'')+doseFor(m,dx);
+  });
+}
+
+function buildDiagnosisFromMeds(meds){
+  const counts={};
+  meds.forEach(m=>{if(m.dx)counts[m.dx]=(counts[m.dx]||0)+1;});
+  return Object.entries(counts)
+    .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))
+    .map(([d])=>d);
+}
+
+// MED GRID
+function buildMedGrid(){const g=document.getElementById('medGrid');g.innerHTML='';ALL_MEDS.forEach(m=>{const l=document.createElement('label');l.className='med-item';l.dataset.med=m;l.innerHTML=`<input type="checkbox" value="${esc(m)}" onchange="onMedChange()"><span>${esc(m)}</span>`;g.appendChild(l)})}
+function filterMeds(){const q=document.getElementById('medSearch').value.toLowerCase();document.querySelectorAll('.med-item').forEach(el=>{el.style.display=el.dataset.med.toLowerCase().includes(q)?'flex':'none'})}
+function getTargetMeds(){return[...document.querySelectorAll('.med-item input:checked')].map(c=>c.value)}
+function onMedChange(){const c=getTargetMeds(),n=c.length,el=document.getElementById('medCount');el.innerHTML=n>5?`<span class="count-warn">⚠ Max 5 — please deselect one</span>`:`<span class="count-num">${n}</span> of 5 target meds selected`;document.querySelectorAll('.med-item').forEach(it=>{const cb=it.querySelector('input');it.classList.toggle('is-target',cb.checked);cb.disabled=(n>=5&&!cb.checked)});renderTargetDxList();liveRender()}
+
+// MED ERROR
+function applyMedError(name,lvl,dx){const base=MED_DB[name];if(!base)return{doseStr:'(unlisted)',route:'',freq:'',errored:false};const db={...base,...((MED_DX_DOSE[name]||{})[dx]||{})};const rate=lvl==='subtle'?0.10:lvl==='chaos'?0.30:0;const err=Math.random()<rate;let ds=db.str;if(err){const mult=[1.5,2.0,0.5,3.0][Math.floor(Math.random()*4)];let v=db.base*mult,f;if(['mcg','mEq','units'].includes(db.unit))f=Math.round(v)+' '+db.unit;else if(v<1)f=parseFloat(v.toFixed(3))+' '+db.unit;else if(v>=100)f=Math.round(v)+' '+db.unit;else f=parseFloat(v.toFixed(2)).toString()+' '+db.unit;ds=f}return{doseStr:ds,route:db.route,freq:db.freq,errored:err}}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function buildMedList(target,noise,errLvl,seedKey=''){let fin=[...target];if(noise!=='none'){const pool=shuffle(ALL_MEDS.filter(m=>!target.includes(m)));fin=[...fin,...pool.slice(0,noise==='moderate'?Math.floor(Math.random()*6)+5:Math.floor(Math.random()*16)+10)]}const nm=fin.slice(target.length).sort();fin=[...target,...nm];return fin.map(m=>{const isT=target.includes(m);const dx=isT?resolveDx(m,seedKey):pickDiagnosis(m,seedKey);return{name:m,isTarget:isT,dx,...applyMedError(m,isT?errLvl:'none',dx)}})}
+
+// MARS ENGINE
+function strHash(s){let h=0;for(let i=0;i<s.length;i++)h=Math.imul(31,h)+s.charCodeAt(i)|0;return Math.abs(h)}
+function makeSRNG(seed){let s=seed>>>0;return()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296}}
+function parseFreq(freq){
+  const f=freq.toLowerCase();
+  if(f.includes('prn'))return{times:[],isPRN:true};
+  if(f.includes('q6h'))return{times:['0600','1200','1800','2400'],isPRN:false};
+  if(f.includes('q8h'))return{times:['0800','1600','2400'],isPRN:false};
+  if(f.includes('qid'))return{times:['0800','1200','1600','2000'],isPRN:false};
+  if(f.includes('tid'))return{times:['0800','1400','2000'],isPRN:false};
+  if(f.includes('bid'))return{times:['0800','2000'],isPRN:false};
+  if(f.includes('bedtime')||f.includes('qhs'))return{times:['2100'],isPRN:false};
+  if(f.includes('every evening'))return{times:['2000'],isPRN:false};
+  return{times:['0800'],isPRN:false};
+}
+function prnReason(freq,dx=''){const f=freq.toLowerCase();if(/insomnia/i.test(dx))return'Unable to sleep';if(f.includes('pain'))return'Patient c/o pain';if(f.includes('nausea')||f.includes('vomit'))return'Nausea/vomiting';if(f.includes('wheez'))return'Wheezing/dyspnea';if(f.includes('chest'))return'Chest discomfort';if(f.includes('anxiety')||f.includes('agit'))return'Anxiety/restlessness';if(f.includes('fever'))return'Fever/discomfort';return'Patient request'}
+function prnResult(freq,dx=''){const f=freq.toLowerCase();if(/insomnia/i.test(dx))return'Slept, no distress';if(f.includes('pain'))return'Mild relief reported';if(f.includes('nausea'))return'Nausea improved';if(f.includes('wheez'))return'Partial relief noted';if(f.includes('chest'))return'Discomfort resolved';if(f.includes('anxiety'))return'Patient calmer';return'Tolerated well'}
+function dayHead(d,isLast){const n=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];const dt=`${d.getMonth()+1}/${d.getDate()}`;return isLast?`<th class="mars-day-head mars-scenario-day">${n}<br>${dt}<br><span class="scenario-day-tag">SIM DAY</span></th>`:`<th class="mars-day-head">${n}<br>${dt}</th>`}
+
+function generateMARS(){
+  const DAYS=7;
+  updateTargetDxInfo();
+  const meds=buildMedList(getTargetMeds(),document.getElementById('medNoise').value,document.querySelector('input[name=medError]:checked')?.value||'none',document.getElementById('patientName').value||'');
+  const compliance=document.getElementById('marsCompliance').value;
+  const initials=(document.getElementById('marsInitials').value||'RN').toUpperCase();
+  const callTimeRaw=document.getElementById('callTime').value;
+  const callTimeInt=callTimeRaw?parseInt(callTimeRaw.replace(':',''))||2400:2400;
+  const callTimeLabel=callTimeRaw?callTimeRaw:'—';
+  const patientName=document.getElementById('patientName').value||'Patient Name Not Set';
+  const dob=fmtDate(document.getElementById('dob').value)||'—';
+  const ageDisplay=document.getElementById('ageDisplay').value;
+  const gender=document.getElementById('gender').value;
+  const provider=document.getElementById('provider').value||'—';
+  const facility=document.getElementById('facilityName').value||'Simulation Facility';
+  const recordNum=document.getElementById('recordNum').value||genRecord()||document.getElementById('recordNum').value;
+  const diagList=buildDiagnosisFromMeds(meds);
+  const diagnosis=diagList.length?diagList.join(', '):'Select medications to generate diagnosis list';
+  const allergies=[...document.querySelectorAll('#allergyGroup input:checked')].map(c=>c.value).join(', ')||'NKDA';
+  const scenarioName=document.getElementById('scenarioName').value;
+  const acuityMap={good:'Stable / Good',fair:'Stable / Fair',guarded:'Guarded',unchanged:'Unchanged'};
+  const acuityText=acuityMap[document.getElementById('acuity').value]||'';
+
+  // Date window: Day 7 = simDate (or today), Day 1 = simDate - 6
+  let simD;
+  const sd=document.getElementById('simDate').value;
+  if(sd){simD=new Date(sd+'T12:00:00');}else{simD=new Date();}
+  const baseDate=new Date(simD);baseDate.setDate(simD.getDate()-6);
+  const days=Array.from({length:DAYS},(_,i)=>{const d=new Date(baseDate);d.setDate(baseDate.getDate()+i);return d;});
+
+  const seed=strHash(patientName+compliance+meds.map(m=>m.name).join(''));
+  const rng=makeSRNG(seed);
+
+  const medRows=[],prnLog=[];
+  meds.forEach(med=>{
+    const db=MED_DB[med.name];if(!db)return;
+    const{times,isPRN}=parseFreq(med.freq);
+    if(isPRN){
+      const cnt=compliance==='compliant'?Math.floor(rng()*2):compliance==='mostly'?Math.floor(rng()*3)+1:Math.floor(rng()*4)+2;
+      for(let i=0;i<cnt;i++){
+        const di=compliance==='noncompliant'?DAYS-1-Math.floor(rng()*2):Math.floor(rng()*DAYS);
+        const hr=Math.floor(rng()*16)+6,mn=Math.floor(rng()*6)*10;
+        if(di===DAYS-1&&(hr*100+mn)>=callTimeInt)continue;
+        prnLog.push({di,date:days[di],time:`${String(hr).padStart(2,'0')}${String(mn).padStart(2,'0')}`,name:med.name,dose:med.doseStr+' '+med.route,reason:prnReason(med.freq,med.dx),result:prnResult(med.freq,med.dx),initials});
+      }
+      return;
+    }
+    if(!times.length)return;
+    const given=times.map(t=>Array.from({length:DAYS},(_,di)=>{if(di===DAYS-1&&parseInt(t)>=callTimeInt)return null;const late=di>=DAYS-2,eve=parseInt(t)>=1800;const p=compliance==='compliant'?0.96:compliance==='mostly'?(eve?0.74:0.82):(late?0.28:0.54);return rng()<p;}));
+    medRows.push({name:med.name,dx:med.dx,dose:med.doseStr,route:med.route,times,given,isTarget:med.isTarget,errored:med.errored});
+  });
+  prnLog.sort((a,b)=>a.di-b.di||a.time.localeCompare(b.time));
+
+  const compLabel={compliant:'Compliant (≥95%)',mostly:'Mostly Compliant (~75-80%)',noncompliant:'Non-Compliant (~40-50%, worsening)'};
+  const dayHeads=days.map((d,i)=>dayHead(d,i===DAYS-1)).join('');
+
+  let medHTML='';
+  if(!medRows.length){
+    medHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:#888;font-style:italic">No scheduled medications. Select target meds and regenerate.</td></tr>';
+  } else {
+    medRows.forEach(med=>{
+      const rs=med.times.length;
+      med.times.forEach((t,ti)=>{
+        const flag=med.errored&&med.isTarget?`<span class="screen-flag mars-err-flag" title="Dose error applied">⚠</span>`:'';
+        medHTML+=`<tr class="${med.isTarget?'mars-target':''}">`;
+        if(ti===0){medHTML+=`<td rowspan="${rs}" class="mars-med-name">${esc(med.name)}${flag}<span class="mars-med-dose">${esc(med.dose)}</span></td><td rowspan="${rs}" class="mars-route">${esc(med.route)}</td>`;}
+        medHTML+=`<td class="mars-time">${t}</td>`;
+        for(let di=0;di<DAYS;di++){const ok=med.given[ti][di];const isPend=ok===null;const cls=`mars-cell${di===DAYS-1?' mars-last-day':''}${isPend?' mars-pending':(!ok?' mars-miss':'')}`;const content=isPend?'<span class="mars-pending-sym">—</span>':ok?`<span class="mars-init">${esc(initials)}</span>`:'<span class="mars-circle">○</span>';medHTML+=`<td class="${cls}">${content}</td>`;}
+        medHTML+='</tr>';
+      });
+      medHTML+='<tr class="mars-sep-row"><td colspan="10"></td></tr>';
+    });
+  }
+
+  let prnHTML='';
+  if(!prnLog.length){prnHTML='<tr><td colspan="6" style="text-align:center;color:#888;padding:8px;font-style:italic">No PRN administrations recorded.</td></tr>';}
+  else{prnLog.forEach(p=>{const ds=`${p.date.getMonth()+1}/${p.date.getDate()}`;prnHTML+=`<tr><td>${esc(ds)}</td><td>${esc(p.time)}</td><td>${esc(p.name)}<br><span style="font-size:6.5pt;color:#555">${esc(p.dose)}</span></td><td>${esc(p.reason)}</td><td>${esc(p.result)}</td><td class="prn-init">${esc(p.initials)}</td></tr>`;});}
+
+  let tot=0,miss=0;medRows.forEach(m=>m.times.forEach((_,ti)=>m.given[ti].forEach(g=>{tot++;if(!g)miss++;})));
+  const missRate=tot?Math.round(miss/tot*100):0;
+  const dateRange=`${(days[0].getMonth()+1)}/${days[0].getDate()} – ${(days[DAYS-1].getMonth()+1)}/${days[DAYS-1].getDate()}`;
+  const mo=days[0].toLocaleString('default',{month:'long'})+' '+days[0].getFullYear();
+
+  document.getElementById('previewContent').innerHTML=`
+  ${scenarioName?`<div class="scenario-badge">SCENARIO: ${esc(scenarioName)}</div>`:''}
+  <div class="mars-doc">
+    <div class="mars-header">
+      <div class="mars-header-left">
+        <div class="mars-doc-title">Medication Administration Record</div>
+        <div class="mars-subtitle">7-Day Administration Summary · EMS Simulation Document</div>
+        <hr class="mars-divider">
+        <table class="mars-info-table">
+          <tr>
+            <td><b>Patient Name:</b> ${esc(patientName)}</td>
+            <td><b>DOB:</b> ${esc(dob)}</td>
+            <td><b>Age / Sex:</b> ${esc(ageDisplay||'—')}${gender?' / '+esc(gender):''}</td>
+          </tr>
+          <tr>
+            <td><b>Record #:</b> ${esc(recordNum)}</td>
+            <td><b>Physician:</b> ${esc(provider)}</td>
+            <td><b>Month / Year:</b> ${mo}</td>
+          </tr>
+          <tr>
+            <td><b>Facility:</b> ${esc(facility)}</td>
+            <td colspan="2"><b>Acuity at Discharge:</b> ${esc(acuityText||'—')}</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="line-height:1.7"><b>Active Diagnoses / PMHx&nbsp;&nbsp;</b><span style="font-weight:400;font-size:8pt">${esc(diagnosis)}</span></td>
+          </tr>
+          <tr>
+            <td colspan="3"><b>Allergies:</b> ${esc(allergies)}</td>
+          </tr>
+        </table>
+        <hr class="mars-divider">
+      </div>
+      <img src="${LOGO_SRC}" class="mars-logo" alt="StatChart-Sim logo">
+    </div>
+    <div class="mars-compliance-bar compliance-${compliance}">
+      <span><b>Compliance Profile:</b> ${compLabel[compliance]}</span>
+      <span class="screen-flag">&nbsp;${missRate}% doses missed (${miss}/${tot}) · instructor view only</span>
+    </div>
+    <table class="mars-table">
+      <thead><tr>
+        <th class="mars-th-med">Medication / Dose</th>
+        <th class="mars-th-rt">Rt</th>
+        <th class="mars-th-time">Time</th>
+        ${dayHeads}
+      </tr></thead>
+      <tbody>${medHTML}</tbody>
+    </table>
+    <div class="mars-section-head">PRN &amp; As-Needed Administrations</div>
+    <table class="mars-prn-table">
+      <thead><tr><th>Date</th><th>Time</th><th>Medication / Dose</th><th>Reason</th><th>Result</th><th>Init</th></tr></thead>
+      <tbody>${prnHTML}</tbody>
+    </table>
+    <div class="mars-legend">
+      <b>Legend:</b> &nbsp; Initials = Dose administered &nbsp;|&nbsp; ○ = Dose not given (compliance) &nbsp;|&nbsp; — = Not yet due at time of call &nbsp;|&nbsp; Shaded rows = Target/anchor medications &nbsp;|&nbsp; Red column = Sim day (Day 7) &nbsp;|&nbsp; EMS call time: ${callTimeLabel} &nbsp;|&nbsp; Date range: ${dateRange}
+    </div>
+    <div class="doc-footer">StatChart-Sim — Simulation Document · NOT a real medical record · For training use only</div>
+  </div>`;
+}
+
+function liveRender(){if(document.getElementById('previewContent').querySelector('.mars-doc'))generateMARS()}
+
+function resetForm(){
+  if(!confirm('Clear all fields and start over?'))return;
+  document.querySelectorAll('input[type=text],input[type=date],input[type=number]').forEach(i=>{if(i.id!=='marsInitials')i.value='';});
+  document.getElementById('marsInitials').value='RN';
+  document.querySelectorAll('select').forEach(s=>s.selectedIndex=0);
+  document.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=false;c.disabled=false});
+  document.querySelector('input[name=medError][value=none]').checked=true;
+  document.querySelectorAll('.med-item').forEach(i=>i.classList.remove('is-target'));
+  document.getElementById('ageDisplay').value='';
+  document.getElementById('medCount').innerHTML='<span class="count-num">0</span> of 5 target meds selected';
+  Object.keys(TARGET_DX).forEach(k=>delete TARGET_DX[k]);renderTargetDxList();
+  genRecord();
+  document.getElementById('previewContent').innerHTML='<div class="preview-empty"><svg width="60" height="60" viewBox="0 0 64 64" fill="none"><rect x="8" y="4" width="40" height="52" rx="3" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="16" x2="40" y2="16" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="24" x2="40" y2="24" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="32" x2="32" y2="32" stroke="#8892A4" stroke-width="2"/><circle cx="48" cy="48" r="12" fill="#E8ECF2" stroke="#8892A4" stroke-width="2"/><line x1="48" y1="43" x2="48" y2="53" stroke="#8892A4" stroke-width="2"/><line x1="43" y1="48" x2="53" y2="48" stroke="#8892A4" stroke-width="2"/></svg><p>Fill in the form and click <strong>Generate MARS Sheet</strong>.</p></div>';
+}
+
+// hide error flags on print
+const ps=document.createElement('style');ps.textContent='@media print{.screen-flag{display:none!important}}';document.head.appendChild(ps);
+const LOGO_SRC="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlN0YXRDaGFydC1TaW0gbG9nbyI+CiAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNDAiIHJ4PSI1MiIgZmlsbD0iIzFCMkE0QSIvPgogIDxyZWN0IHg9IjgiIHk9IjgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiByeD0iNTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U1MzgzYiIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPHJlY3QgeD0iNjIiIHk9IjU0IiB3aWR0aD0iMTMyIiBoZWlnaHQ9IjE2MCIgcng9IjE0IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOTgiIHk9IjQwIiB3aWR0aD0iNjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjOGVhMWI1Ii8+CiAgPHJlY3QgeD0iMTEyIiB5PSI0NiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjMUIyQTRBIi8+CiAgPHJlY3QgeD0iODAiIHk9Ijg0IiB3aWR0aD0iNzAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNjZGQ0ZTAiLz4KICA8cmVjdCB4PSI4MCIgeT0iMTAwIiB3aWR0aD0iNDgiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNjZGQ0ZTAiLz4KICA8cG9seWxpbmUgcG9pbnRzPSI3NCwxNDYgMTAwLDE0NiAxMTAsMTI4IDEyNCwxNzYgMTQwLDExMiAxNTAsMTQ2IDE4MiwxNDYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U1MzgzYiIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHJlY3QgeD0iODAiIHk9IjE5MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjY2RkNGUwIi8+Cjwvc3ZnPgo=";
+document.getElementById('headerLogo').src=LOGO_SRC;
+buildMedGrid();
+genRecord();
+</script>
+</body>
+</html>

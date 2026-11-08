@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal Documents Generator — StatChart-Sim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --navy:#1B2A4A;--gold:#C9871E;--gold-light:#F0A830;
+  --bg:#EDF0F5;--white:#FFF;--gray-100:#F8F9FC;--gray-200:#E8ECF2;
+  --gray-300:#CDD4E0;--gray-500:#8892A4;--gray-700:#4A5568;
+  --text:#1B2A4A;--danger:#C0392B;--success:#27AE60;
+  --font-ui:'IBM Plex Sans',sans-serif;
+  --font-doc:'Times New Roman',Times,Georgia,serif;
+  --radius:8px;--shadow:0 2px 12px rgba(27,42,74,.10);
+  --shadow-lg:0 8px 32px rgba(27,42,74,.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+.app-header{background:var(--navy);color:#fff;padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.header-brand{display:flex;align-items:center;gap:13px}
+.header-badge{width:40px;height:auto;flex-shrink:0}
+.header-title{font-size:1rem;font-weight:600;line-height:1.2}
+.header-subtitle{font-size:.68rem;color:var(--gold-light);font-weight:300;letter-spacing:.07em;text-transform:uppercase;margin-top:2px}
+.header-actions{display:flex;gap:10px;align-items:center}
+.app-body{display:grid;grid-template-columns:420px 1fr;flex:1;height:calc(100vh - 62px);overflow:hidden}
+.form-panel{background:var(--white);overflow-y:auto;border-right:1px solid var(--gray-200)}
+.form-section{padding:16px 22px;border-bottom:1px solid var(--gray-200)}
+.form-section.hidden{display:none}
+.section-label{font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--gray-200)}
+.field{margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:.77rem;font-weight:500;color:var(--gray-700);margin-bottom:4px}
+label .hint{font-size:.68rem;color:var(--gray-500);font-weight:400}
+input[type=text],input[type=date],select,textarea{width:100%;padding:7px 10px;font-family:var(--font-ui);font-size:.84rem;border:1.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-100);color:var(--text);transition:border-color .15s;outline:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,74,.08);background:#fff}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234A5568' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
+textarea{resize:vertical;min-height:60px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.field-note{font-size:.69rem;color:var(--gray-500);margin-top:4px;line-height:1.4}
+.check-group{display:flex;flex-wrap:wrap;gap:6px}
+.check-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border:1.5px solid var(--gray-300);border-radius:20px;font-size:.77rem;cursor:pointer;transition:all .12s;background:var(--gray-100);user-select:none;color:var(--gray-700)}
+.check-pill input{display:none}
+.check-pill:has(input:checked){background:var(--navy);border-color:var(--navy);color:#fff}
+.check-pill:hover{border-color:var(--navy)}
+/* doc-select pills */
+.doc-select-group{display:flex;flex-direction:column;gap:8px}
+.doc-select-pill{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:var(--radius);cursor:pointer;transition:all .12s;background:var(--gray-100);user-select:none}
+.doc-select-pill input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--navy);cursor:pointer}
+.doc-select-pill:has(input:checked){background:rgba(27,42,74,.05);border-color:var(--navy)}
+.doc-select-pill .pill-title{font-size:.83rem;font-weight:600;color:var(--text)}
+.doc-select-pill .pill-sub{font-size:.71rem;color:var(--gray-500)}
+/* yes/no radio groups */
+.yn-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.yn-label{font-size:.77rem;color:var(--gray-700);font-weight:500;margin-right:4px}
+.yn-opt{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border:1.5px solid var(--gray-300);border-radius:20px;font-size:.77rem;cursor:pointer;background:var(--gray-100);user-select:none;transition:all .12s}
+.yn-opt input{display:none}
+.yn-opt:has(input:checked){background:var(--navy);border-color:var(--navy);color:#fff}
+.yn-opt:hover{border-color:var(--navy)}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:var(--radius);font-family:var(--font-ui);font-size:.82rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-primary:hover{background:var(--gold-light);border-color:var(--gold-light);transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,135,30,.4)}
+.btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.btn-outline:hover{background:rgba(255,255,255,.1);border-color:#fff}
+.btn-ghost{background:transparent;color:var(--gray-700);border-color:var(--gray-300);padding:6px 14px;font-size:.8rem}
+.btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+.generate-btn{width:100%;justify-content:center;padding:12px;font-size:.9rem;background:var(--navy);color:#fff;border-color:var(--navy);margin:14px 0 2px}
+.generate-btn:hover{background:#253660;transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+/* Preview */
+.preview-panel{overflow-y:auto;background:#D8DCE5;padding:28px;display:flex;flex-direction:column;align-items:center}
+.preview-toolbar{width:100%;max-width:720px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.preview-toolbar h2{font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-500)}
+.preview-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray-500);text-align:center;gap:14px;padding:60px 20px;width:100%;max-width:720px}
+.preview-empty p{font-size:.86rem;max-width:300px;line-height:1.5}
+.preview-docs{width:100%;max-width:720px}
+/* ── Legal Document Styles ── */
+.legal-doc{background:#fff;box-shadow:var(--shadow-lg);border-radius:2px;font-family:var(--font-doc);color:#000;padding:50px 56px;font-size:11pt;line-height:1.55;margin-bottom:20px;width:100%}
+.legal-doc .doc-page{margin-bottom:0}
+.legal-doc .pg-break{border:none;border-top:2px dashed #bbb;margin:40px 0;padding-bottom:36px}
+.legal-doc h1.doc-main-title{font-size:14pt;text-align:center;font-weight:bold;text-transform:uppercase;margin-bottom:6px}
+.legal-doc h2.doc-section-title{font-size:11pt;font-weight:bold;text-transform:uppercase;margin:16px 0 6px}
+.legal-doc .doc-state-header{text-align:center;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:10px}
+.legal-doc .doc-state-header .dept{font-size:10pt;font-weight:bold;text-transform:uppercase}
+.legal-doc .doc-state-header .state{font-size:11pt;font-weight:bold;text-transform:uppercase;margin:4px 0}
+.legal-doc .doc-state-header .form-num{font-size:9pt;color:#444}
+.legal-doc .doc-notice-box{border:2px solid #000;padding:12px 16px;margin:12px 0;font-size:10pt}
+.legal-doc .doc-notice-box p{margin-bottom:8px}
+.legal-doc .doc-notice-box p:last-child{margin-bottom:0}
+.legal-doc .two-col-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:10.5pt}
+.legal-doc .two-col-table td{border:2px solid #000;padding:10px 14px;vertical-align:top;width:50%}
+.legal-doc .two-col-table td ul{padding-left:18px;margin-top:6px}
+.legal-doc .two-col-table td ul li{margin-bottom:4px}
+.legal-doc .two-col-table td.col-head{font-weight:bold;text-decoration:underline;font-size:10pt}
+.legal-doc .patient-table{width:100%;border-collapse:collapse;margin:14px 0}
+.legal-doc .patient-table td{padding:6px 8px;vertical-align:bottom;font-size:10pt}
+.legal-doc .patient-table .field-line{border-bottom:1px solid #000;display:block;min-height:20px;padding:0 4px}
+.legal-doc .patient-table .field-label{font-size:8.5pt;color:#444;display:block;margin-top:2px}
+.legal-doc .sig-block{margin:14px 0;display:grid;gap:10px}
+.legal-doc .sig-row{display:flex;gap:20px;align-items:flex-end}
+.legal-doc .sig-field{flex:1}
+.legal-doc .sig-line{border-bottom:1px solid #000;min-height:22px;display:block;padding:0 4px;font-size:10.5pt}
+.legal-doc .sig-caption{font-size:8.5pt;color:#444;margin-top:2px}
+.legal-doc .required-note{text-align:center;font-weight:bold;font-size:10pt;border:1px solid #000;padding:6px;margin-top:10px}
+.legal-doc .doc-checkbox{font-size:13pt;line-height:1;margin-right:2px;vertical-align:middle}
+.legal-doc .yn-row{display:flex;align-items:baseline;gap:20px;margin:6px 0 6px 16px}
+.legal-doc .yn-item{display:inline-flex;align-items:baseline;gap:4px}
+.legal-doc .cb-row{display:flex;align-items:baseline;gap:6px;margin:6px 0}
+.legal-doc .cb-row p{flex:1}
+.legal-doc .indent{padding-left:24px}
+.legal-doc .consent-text{font-size:10pt;line-height:1.5;margin:12px 0;text-indent:24px}
+.legal-doc .section-divider{border:none;border-top:1px solid #000;margin:14px 0}
+.legal-doc .bold{font-weight:bold}
+.legal-doc .underline{text-decoration:underline}
+.legal-doc .center{text-align:center}
+.legal-doc .small{font-size:9.5pt}
+.legal-doc .doc-footer{margin-top:30px;padding-top:8px;border-top:1px solid #ccc;font-family:var(--font-ui);font-size:7.5pt;color:#888;text-align:center}
+.sim-banner{background:var(--navy);color:#fff;font-family:var(--font-ui);font-size:7.5pt;font-weight:600;letter-spacing:.06em;text-align:center;padding:4px;text-transform:uppercase;margin-bottom:0;border-radius:2px 2px 0 0}
+@media print{
+  @page{margin:0.6in 0.7in;size:letter portrait}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff}
+  .app-header,.form-panel,.preview-toolbar{display:none!important}
+  .app-body{display:block;height:auto;overflow:visible}
+  .preview-panel{padding:0;background:#fff;display:block;overflow:visible}
+  .legal-doc{box-shadow:none;padding:0;margin-bottom:0}
+  .sim-banner{display:none}
+  .pg-break{border:none;page-break-after:always;margin:0;padding:0}
+  .pg-break-before{page-break-before:always}
+  .no-break{page-break-inside:avoid}
+}
+@media(max-width:900px){.app-body{grid-template-columns:1fr;height:auto}}
+
+</style>
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/tool-theme.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-brand">
+    <img class="header-badge" id="headerLogo" alt="StatChart-Sim logo">
+    <div>
+      <div class="header-title">Legal Documents Generator</div>
+      <div class="header-subtitle">StatChart-Sim · Wisconsin Advance Care Forms · Simulation Only</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a class="back-link" href="../index.html">← StatChart-Sim</a>
+    <button class="btn btn-outline" onclick="resetForm()">↺ Reset</button>
+    <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+</header>
+
+<div class="app-body">
+ <aside class="form-panel">
+
+  <div class="form-section">
+   <div class="section-label">Scenario</div>
+   <div class="field">
+    <label>Simulation Scenario Name</label>
+    <input type="text" id="scenarioName" placeholder="e.g. Unit 4 — DNR Scenario #1">
+   </div>
+   <div class="field-row">
+    <div class="field">
+     <label>Simulation Date</label>
+     <input type="date" id="simDate" onchange="calcAge()">
+    </div>
+   </div>
+  </div>
+
+  <div class="form-section">
+   <div class="section-label">Documents to Include</div>
+   <div class="doc-select-group">
+    <label class="doc-select-pill"><input type="checkbox" id="inc_dnr" onchange="onDocToggle()">
+     <div><div class="pill-title">Emergency Care DNR Order</div><div class="pill-sub">F-44763 · Wisconsin Do Not Resuscitate · 2 pages</div></div>
+    </label>
+    <label class="doc-select-pill"><input type="checkbox" id="inc_poa" onchange="onDocToggle()">
+     <div><div class="pill-title">Power of Attorney for Health Care</div><div class="pill-sub">F-00085 · Health Care Agent Designation · 8 pages</div></div>
+    </label>
+    <label class="doc-select-pill"><input type="checkbox" id="inc_lw" onchange="onDocToggle()">
+     <div><div class="pill-title">Declaration to Health Care Professionals</div><div class="pill-sub">F-00060 · Wisconsin Living Will · 4 pages</div></div>
+    </label>
+    <label class="doc-select-pill"><input type="checkbox" id="inc_fd" onchange="onDocToggle()">
+     <div><div class="pill-title">Authorization for Final Disposition</div><div class="pill-sub">F-00086 · Funeral Arrangement Authorization · 5 pages</div></div>
+    </label>
+   </div>
+  </div>
+
+  <div class="form-section">
+   <div class="section-label">Patient Demographics</div>
+   <div class="field">
+    <label>Patient Name <span class="hint">(simulation only)</span></label>
+    <input type="text" id="patientName" placeholder="Simulated patient name">
+   </div>
+   <div class="field-row">
+    <div class="field"><label>Date of Birth</label><input type="date" id="dob" onchange="calcAge()"></div>
+    <div class="field"><label>Age <span class="hint">(auto)</span></label><input type="text" id="ageDisplay" readonly style="background:#f0f2f5;cursor:default"></div>
+   </div>
+   <div class="field">
+    <label>Gender</label>
+    <select id="gender">
+     <option value="">— Select —</option>
+     <option value="Male">Male</option>
+     <option value="Female">Female</option>
+    </select>
+   </div>
+   <div class="field"><label>Street Address</label><input type="text" id="address" placeholder="123 Main Street"></div>
+   <div class="field-row">
+    <div class="field"><label>City</label><input type="text" id="city" placeholder="Milwaukee"></div>
+    <div class="field"><label>State / Zip</label>
+     <div class="field-row" style="gap:6px">
+      <input type="text" id="state" value="WI" style="max-width:50px">
+      <input type="text" id="zip" placeholder="53201">
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <!-- DNR SETTINGS -->
+  <div class="form-section hidden" id="sec_dnr">
+   <div class="section-label">DNR — Physician Info</div>
+   <div class="field"><label>Attending Physician Name</label><input type="text" id="dnrPhysName" placeholder="Dr. Janet Romulo"></div>
+   <div class="field"><label>Physician Telephone</label><input type="text" id="dnrPhysPhone" placeholder="(608) 555-0100"></div>
+  </div>
+
+  <!-- POA SETTINGS -->
+  <div class="form-section hidden" id="sec_poa">
+   <div class="section-label">POA — Health Care Agent</div>
+   <div class="field"><label>Agent Name</label><input type="text" id="agentName" placeholder="Full name"></div>
+   <div class="field"><label>Agent Address</label><input type="text" id="agentAddress" placeholder="Street, City, State Zip"></div>
+   <div class="field"><label>Agent Phone</label><input type="text" id="agentPhone" placeholder="(414) 555-0100"></div>
+   <div class="field" style="margin-top:4px"><label>Alternate Agent Name</label><input type="text" id="altName" placeholder="Full name"></div>
+   <div class="field"><label>Alternate Address</label><input type="text" id="altAddress" placeholder="Street, City, State Zip"></div>
+   <div class="field"><label>Alternate Phone</label><input type="text" id="altPhone" placeholder="(414) 555-0101"></div>
+   <div class="field" style="margin-top:6px">
+    <label>Nursing Home Admission</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="nursingHome" value="yes"> Yes</label>
+     <label class="yn-opt"><input type="radio" name="nursingHome" value="no"> No</label>
+     <label class="yn-opt"><input type="radio" name="nursingHome" value=""> Not specified</label>
+    </div>
+   </div>
+   <div class="field">
+    <label>Community-Based Residential Facility</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="cbrf" value="yes"> Yes</label>
+     <label class="yn-opt"><input type="radio" name="cbrf" value="no"> No</label>
+     <label class="yn-opt"><input type="radio" name="cbrf" value=""> Not specified</label>
+    </div>
+   </div>
+   <div class="field">
+    <label>Withhold/Withdraw Feeding Tube</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="feedingTube" value="yes"> Yes</label>
+     <label class="yn-opt"><input type="radio" name="feedingTube" value="no"> No</label>
+     <label class="yn-opt"><input type="radio" name="feedingTube" value=""> Not specified</label>
+    </div>
+   </div>
+   <div class="field">
+    <label>Health Care Decisions If Pregnant</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="pregnancy" value="yes"> Yes</label>
+     <label class="yn-opt"><input type="radio" name="pregnancy" value="no"> No</label>
+     <label class="yn-opt"><input type="radio" name="pregnancy" value=""> Not specified</label>
+    </div>
+   </div>
+   <div class="field">
+    <label>Statement of Desires <span class="hint">(one per line, up to 3)</span></label>
+    <textarea id="poaDesires" placeholder="1. &#10;2. &#10;3. " rows="3"></textarea>
+   </div>
+   <div class="field">
+    <label>Anatomical Gift</label>
+    <div class="check-group">
+     <label class="check-pill"><input type="radio" name="anatGift" value="specific"> Specific organs</label>
+     <label class="check-pill"><input type="radio" name="anatGift" value="any"> Any needed</label>
+     <label class="check-pill"><input type="radio" name="anatGift" value="body"> Body for study</label>
+     <label class="check-pill"><input type="radio" name="anatGift" value="refuse"> Refuse</label>
+    </div>
+    <input type="text" id="anatGiftSpec" placeholder="Specify organs (if 'Specific organs' selected)" style="margin-top:6px">
+   </div>
+  </div>
+
+  <!-- LIVING WILL SETTINGS -->
+  <div class="form-section hidden" id="sec_lw">
+   <div class="section-label">Living Will — Directive Choices</div>
+   <div class="field">
+    <label>Terminal Condition — Feeding Tube</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="termFT" value="yes"> Yes (use feeding tubes)</label>
+     <label class="yn-opt"><input type="radio" name="termFT" value="no"> No (do not use)</label>
+     <label class="yn-opt"><input type="radio" name="termFT" value=""> Not specified</label>
+    </div>
+   </div>
+   <div class="field">
+    <label>Persistent Vegetative State — Life-Sustaining Procedures</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="pvsSust" value="yes"> Yes (use)</label>
+     <label class="yn-opt"><input type="radio" name="pvsSust" value="no"> No (do not use)</label>
+     <label class="yn-opt"><input type="radio" name="pvsSust" value=""> Not specified</label>
+    </div>
+   </div>
+   <div class="field">
+    <label>Persistent Vegetative State — Feeding Tube</label>
+    <div class="yn-group">
+     <label class="yn-opt"><input type="radio" name="pvsFT" value="yes"> Yes (use feeding tubes)</label>
+     <label class="yn-opt"><input type="radio" name="pvsFT" value="no"> No (do not use)</label>
+     <label class="yn-opt"><input type="radio" name="pvsFT" value=""> Not specified</label>
+    </div>
+   </div>
+  </div>
+
+  <!-- FINAL DISPOSITION SETTINGS -->
+  <div class="form-section hidden" id="sec_fd">
+   <div class="section-label">Final Disposition — Representative</div>
+   <div class="field"><label>Representative Name</label><input type="text" id="repName" placeholder="Full name"></div>
+   <div class="field"><label>Representative Address</label><input type="text" id="repAddress" placeholder="Street, City, State Zip"></div>
+   <div class="field"><label>Representative Phone</label><input type="text" id="repPhone" placeholder="(414) 555-0200"></div>
+   <div class="field" style="margin-top:4px"><label>1st Successor Name</label><input type="text" id="succ1Name" placeholder="Full name"></div>
+   <div class="field"><label>1st Successor Address</label><input type="text" id="succ1Address" placeholder="Street, City, State Zip"></div>
+   <div class="field"><label>1st Successor Phone</label><input type="text" id="succ1Phone" placeholder="(414) 555-0201"></div>
+   <div class="field" style="margin-top:4px"><label>2nd Successor Name</label><input type="text" id="succ2Name" placeholder="Full name"></div>
+   <div class="field"><label>2nd Successor Address</label><input type="text" id="succ2Address" placeholder="Street, City, State Zip"></div>
+   <div class="field"><label>2nd Successor Phone</label><input type="text" id="succ2Phone" placeholder="(414) 555-0202"></div>
+   <div class="field" style="margin-top:4px">
+    <label>Special Directions <span class="hint">(one per line: viewing, funeral, burial, religious)</span></label>
+    <textarea id="fdDirections" placeholder="Viewing arrangements&#10;Funeral/memorial service&#10;Burial/cremation&#10;Religious observances" rows="4"></textarea>
+   </div>
+  </div>
+
+  <div class="form-section">
+   <button class="btn generate-btn" onclick="generateDocs()">⚡ Generate Legal Documents</button>
+  </div>
+
+ </aside>
+
+ <main class="preview-panel">
+  <div class="preview-toolbar">
+   <h2>Document Preview</h2>
+   <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost" onclick="generateDocs()">↻ Regenerate</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
+   </div>
+  </div>
+  <div id="previewContent">
+   <div class="preview-empty">
+    <svg width="60" height="60" viewBox="0 0 64 64" fill="none">
+     <rect x="8" y="4" width="40" height="52" rx="3" stroke="#8892A4" stroke-width="2"/>
+     <line x1="16" y1="16" x2="40" y2="16" stroke="#8892A4" stroke-width="2"/>
+     <line x1="16" y1="24" x2="40" y2="24" stroke="#8892A4" stroke-width="2"/>
+     <line x1="16" y1="32" x2="32" y2="32" stroke="#8892A4" stroke-width="2"/>
+     <circle cx="48" cy="48" r="12" fill="#E8ECF2" stroke="#8892A4" stroke-width="2"/>
+     <line x1="48" y1="43" x2="48" y2="53" stroke="#8892A4" stroke-width="2"/>
+     <line x1="43" y1="48" x2="53" y2="48" stroke="#8892A4" stroke-width="2"/>
+    </svg>
+    <p>Select the documents to include, fill in patient details, then click <strong>Generate Legal Documents</strong>.</p>
+   </div>
+  </div>
+ </main>
+</div>
+
+<script>
+const LOGO_SRC="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlN0YXRDaGFydC1TaW0gbG9nbyI+CiAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNDAiIHJ4PSI1MiIgZmlsbD0iIzFCMkE0QSIvPgogIDxyZWN0IHg9IjgiIHk9IjgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiByeD0iNTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U1MzgzYiIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPHJlY3QgeD0iNjIiIHk9IjU0IiB3aWR0aD0iMTMyIiBoZWlnaHQ9IjE2MCIgcng9IjE0IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOTgiIHk9IjQwIiB3aWR0aD0iNjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjOGVhMWI1Ii8+CiAgPHJlY3QgeD0iMTEyIiB5PSI0NiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjMUIyQTRBIi8+CiAgPHJlY3QgeD0iODAiIHk9Ijg0IiB3aWR0aD0iNzAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNjZGQ0ZTAiLz4KICA8cmVjdCB4PSI4MCIgeT0iMTAwIiB3aWR0aD0iNDgiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNjZGQ0ZTAiLz4KICA8cG9seWxpbmUgcG9pbnRzPSI3NCwxNDYgMTAwLDE0NiAxMTAsMTI4IDEyNCwxNzYgMTQwLDExMiAxNTAsMTQ2IDE4MiwxNDYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U1MzgzYiIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHJlY3QgeD0iODAiIHk9IjE5MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjY2RkNGUwIi8+Cjwvc3ZnPgo=";
+
+// ── DNR Render ──────────────────────────────────────────────
+function renderDNR(d) {
+  var p = d.patientName||'', dob = d.dob||'', gender = d.gender||'',
+      addr = d.address||'', city = d.city||'', state = d.state||'WI', zip = d.zip||'',
+      phys = d.dnrPhysName||'', physPh = d.dnrPhysPhone||'',
+      dateSign = d.dnrDate||'';
+  function fl(v,w){return '<span class="field-line" style="min-width:'+(w||'140px')+'">'+(v||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')+'</span>';}
+  function gbox(val,match){return '<span class="doc-checkbox">'+(val===match?'&#x2611;':'&#x2610;')+'</span>';}
+
+  var html = '';
+  // ── PAGE 1 ──
+  html += '<div class="doc-page no-break">';
+  html += '<div class="doc-state-header">';
+  html += '<div class="dept">Department of Health Services &nbsp;|&nbsp; Division of Public Health</div>';
+  html += '<div class="form-num">F-44763 (Rev 06/2017) &nbsp;&nbsp; Page 1 of 2</div>';
+  html += '<div class="state">State of Wisconsin &nbsp;|&nbsp; Ch. 154 Wis. Stats.</div>';
+  html += '<div class="form-num">PO Box 2659, Madison, WI 53701-2659 &nbsp;&nbsp; (608) 266-1568</div>';
+  html += '</div>';
+  html += '<h1 class="doc-main-title">Emergency Care<br>Do Not Resuscitate Order (DNR)</h1>';
+  html += '<p class="small center" style="margin-bottom:10px"><em>(See Page 2 for Background Information and Instructions on how to complete this form)</em></p>';
+  html += '<div class="doc-notice-box">';
+  html += '<p>Only the Do Not Resuscitate (DNR) bracelet identifies to the Emergency Medical Service Responders that you are DNR. This form cannot be used to communicate your wishes to Responders. This form is a legal document and is used to request a DNR bracelet by the attending physician on the patient\'s behalf. This form also provides specific care instructions for health care providers responding to emergency calls. If this form is appropriately completed, emergency personnel should limit care as outlined.</p>';
+  html += '<p>The patient and the legal guardian or health care agent of an incapacitated patient have the right to revoke these restrictions on care at any time.</p>';
+  html += '</div>';
+  html += '<table class="two-col-table"><tr>';
+  html += '<td class="col-head">Emergency provider as appropriate will provide:</td>';
+  html += '<td class="col-head">Emergency provider will NOT:</td>';
+  html += '</tr><tr>';
+  html += '<td><ul><li>Clear airway</li><li>Administer oxygen</li><li>Position for comfort</li><li>Splint</li><li>Control bleeding</li><li>Provide pain medication</li><li>Provide emotional support</li><li>Contact hospice or home health agency if either has been involved in patient\'s care, or patient\'s attending physician</li></ul></td>';
+  html += '<td><ul><li>Perform chest compressions</li><li>Insert advanced airways</li><li>Administer cardiac resuscitation drugs</li><li>Provide ventilator assistance</li><li>Defibrillate</li></ul></td>';
+  html += '</tr></table>';
+  // Patient info
+  html += '<table class="patient-table"><tr>';
+  html += '<td style="width:50px">'+gbox(gender,'Male')+'Male &nbsp; '+gbox(gender,'Female')+'Female</td>';
+  html += '<td><span class="field-line" style="min-width:260px">'+p+'</span><span class="field-label">Print Patient Name</span></td>';
+  html += '<td><span class="field-line" style="min-width:120px">'+dob+'</span><span class="field-label">Date of Birth</span></td>';
+  html += '</tr><tr>';
+  html += '<td colspan="3">';
+  html += '<table style="width:100%"><tr>';
+  html += '<td><span class="field-line" style="min-width:240px">'+addr+'</span><span class="field-label">Patient\'s Address — Street</span></td>';
+  html += '<td><span class="field-line" style="min-width:120px">'+city+'</span><span class="field-label">City</span></td>';
+  html += '<td><span class="field-line" style="min-width:36px">'+state+'</span><span class="field-label">State</span></td>';
+  html += '<td><span class="field-line" style="min-width:60px">'+zip+'</span><span class="field-label">Zip Code</span></td>';
+  html += '</tr></table></td>';
+  html += '</tr></table>';
+  html += '<p class="consent-text">I / patient, legal guardian or health care agent understand this document identifies the level of care to be rendered to the patient by an emergency medical technician, first responder, or emergency health care facility personnel in situations where death may be imminent. I / patient, legal guardian or health care provider make this request knowingly and am aware of the alternatives as explained to by the attending physician. I / patient, legal guardian or health care agent expressly release all persons who will in the future provide medical care of any and all liability whatsoever for acting in accordance with this request. I / patient, legal guardian or health care agent is aware that this order can be revoked at any time by removing or defacing the identification bracelet or by requesting resuscitation.</p>';
+  html += '<div class="sig-block">';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">SIGNATURE — Patient or Legal Guardian or Health Care Agent of an incapacitated patient (Circle title of who is signing this request)</span></div><div class="sig-field"><span class="sig-line">'+dateSign+'</span><span class="sig-caption">Date Signed</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">'+phys+'</span><span class="sig-caption">Print Attending Physician\'s Name</span></div><div class="sig-field"><span class="sig-line">'+physPh+'</span><span class="sig-caption">Telephone Number</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">SIGNATURE — Attending Physician\'s</span></div><div class="sig-field"><span class="sig-line">'+dateSign+'</span><span class="sig-caption">Date Signed</span></div></div>';
+  html += '</div>';
+  html += '<div class="required-note">THE ABOVE SIGNATURES AND DATES ARE REQUIRED FOR THIS ORDER TO BE VALID AND ITS INTENT CARRIED OUT.</div>';
+  html += '<div class="doc-footer">F-44763 (Rev 06/2017) &nbsp;&nbsp; State of Wisconsin Department of Health Services &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── PAGE 2: Background Information ──
+  html += '<hr class="pg-break">';
+  html += '<div class="doc-page pg-break-before">';
+  html += '<div class="doc-state-header"><div class="form-num">F-44763 (Rev 06/2017) &nbsp;&nbsp; Page 2 of 2</div></div>';
+  html += '<h2 class="doc-section-title" style="font-size:12pt;margin-bottom:12px">Background Information and Instructions for Completing Do Not Resuscitate (DNR) Order</h2>';
+  html += '<h2 class="doc-section-title">I &nbsp; Background Information</h2>';
+  html += '<p>Cardiopulmonary resuscitation (CPR) is a procedure used after cardiac arrest in which cardiac massage, drugs, and artificial ventilation are used to restore breathing and circulation. It is standard medical practice to perform CPR on all persons found to be in cardiac or respiratory arrest in the absence of directives from an attending physician to withhold such action. However, patients may legally and ethically decline these treatments. The DNR order is used to implement the decision that CPR is not to be performed. This decision to limit CPR rests with the attending physician and his/her qualified patient, legal guardian, or health care agent as described in Chapter 154, Subchapter III of the Wisconsin Statutes. A qualified patient means a person who is at least 18 years old and to whom any of the following conditions applies:</p>';
+  html += '<ol style="margin:8px 0 8px 28px"><li style="margin-bottom:6px">The person has a terminal medical condition.</li>';
+  html += '<li style="margin-bottom:6px">The person has a medical condition that if the person were to suffer cardiac or pulmonary failure, resuscitation would be unsuccessful in restoring cardiac or respiratory function or the person would experience repeated cardiac or pulmonary failure within a short period before death occurs.</li>';
+  html += '<li style="margin-bottom:6px">The person has a medical condition that if the person were to suffer cardiac or pulmonary failure, resuscitation of that person would cause significant physical pain or harm that would outweigh the possibility that resuscitation would successfully restore cardiac or respiratory function for an indefinite period.</li></ol>';
+  html += '<p>The bracelet is intended to communicate the existence of a "Do Not Resuscitate" order to the emergency medical personnel who may be summoned in the event of an emergency. In addition, it provides guidelines for comfort and supportive care short of CPR that may be administered by emergency personnel.</p>';
+  html += '<h2 class="doc-section-title">II &nbsp; Guidelines for Completing Form, Ordering Plastic Bracelet, Metal Bracelet</h2>';
+  html += '<p>After discussing treatment options the patient or the legal guardian or health care agent of the incapacitated patient, complete the DNR order, F-44763. The types of care to be rendered and withheld should be carefully explained to the patient, legal guardian or health care agent, and family members by the attending physician or the attending physician\'s designee before the form is signed. After the form is completed and signed, the attending physician or designee shall either affix the "Do Not Resuscitate" plastic bracelet to the patient\'s wrist or order a metal bracelet from StickyJ Medical ID Jewelry. This decision must be documented in the patient\'s medical record. It is recommended that this documentation include:</p>';
+  html += '<ol style="margin:8px 0 8px 28px"><li style="margin-bottom:4px">The rationale for the decision including, qualifying medical condition</li><li style="margin-bottom:4px">The presence or absence of decision making capacity on the part of the patient</li></ol>';
+  html += '<p>Two dated signatures are required for this document to be valid and its intent carried out.</p>';
+  html += '<ol style="margin:8px 0 8px 28px"><li style="margin-bottom:4px">Patient, legal guardian, or health care agent\'s signature and date signed</li><li style="margin-bottom:4px">Attending Physician\'s signature and date signed by physician</li></ol>';
+  html += '<p>The metal bracelet includes an emblem that displays an internationally recognized symbol "Staff of Aesculapius" along with the words "Wisconsin Do-Not-Resuscitate-EMS, and the qualified patient\'s first and last name on the back. Wisconsin DNR residents may provide StickyJ Medical ID Jewelry with other important health information to be engraved on the back of the bracelet at the time of ordering.</p>';
+  html += '<p style="margin-top:8px">To order a metal bracelet include the following:</p>';
+  html += '<ol style="margin:8px 0 8px 28px"><li style="margin-bottom:4px">A copy of the Wisconsin DNR form: signed by the attending physician and the patient, legal guardian or health care agent. The patient should receive a copy of the DNR Order Form. An original signed form or a legible photocopy or electronic facsimile is presumed to be valid.</li><li style="margin-bottom:4px">Copy of the completed StickyJ Medical ID Jewelry order form: https://www.stickyj.com/category/dnr-jewelry-bracelets/wisconsin</li><li style="margin-bottom:4px">Payment made out to StickyJ Medical ID Jewelry.</li><li style="margin-bottom:4px">Mail to: StickyJ Medical ID Jewelry, 10801 Endeavor Way Unit B, Seminole FL 33777.</li></ol>';
+  html += '<h2 class="doc-section-title">III &nbsp; Revoking an Existing DNR Order</h2>';
+  html += '<p>The patient, legal guardian or health care agent can revoke the DNR order by any of the following methods:</p>';
+  html += '<ol style="margin:8px 0 8px 28px"><li style="margin-bottom:4px">The patient, legal guardian or health care agent expresses to emergency personnel the desire that the patient be resuscitated.</li><li style="margin-bottom:4px">The patient, legal guardian or health care agent defaces, or otherwise destroys the DNR bracelet.</li><li style="margin-bottom:4px">The patient, legal guardian, or health care agent removes the DNR bracelet or another person, at the request of the patient, legal guardian, or health care agent removes the DNR bracelet.</li></ol>';
+  html += '<p>The DNR order (and copies) should be torn up and the patient\'s attending physician should be notified of the revocation. Only the patient, legal guardian or health care agent may revoke an order issued under Chapter 154 Wisconsin Status. The DNR order is NOT revoked when an ambulance is called. Ambulance personnel will honor the DNR and will provide comfort care only.</p>';
+  html += '<div class="doc-footer">F-44763 (Rev 06/2017) &nbsp;&nbsp; State of Wisconsin Department of Health Services &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+  return html;
+}
+
+
+// ── POA Render ──────────────────────────────────────────────
+function renderPOA(d) {
+  var p = d.patientName||'', dob = d.dob||'', addr = d.address||'',
+      city = d.city||'', state = d.state||'WI', zip = d.zip||'',
+      poaDate = d.poaDate||'', poaDay = d.poaDay||'', poaMonth = d.poaMonth||'', poaYear = d.poaYear||'',
+      ag = d.agentName||'', agAddr = d.agentAddress||'', agPh = d.agentPhone||'',
+      alt = d.altName||'', altAddr = d.altAddress||'', altPh = d.altPhone||'',
+      nh = d.nursingHome||'', cbrf = d.cbrf||'', ft = d.feedingTube||'', preg = d.pregnancy||'',
+      desires = d.poaDesires||'', anatGift = d.anatGift||'';
+  function fl(v,w){return '<span class="field-line" style="min-width:'+(w||'180px')+'">'+(v||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')+'</span>';}
+  function box(val,match){return '<span class="doc-checkbox">'+(val===match?'&#x2611;':'&#x2610;')+'</span>';}
+
+  var html = '';
+
+  // ── POA INSTRUCTIONS PAGE 1 ──
+  html += '<div class="doc-page pg-break-before">';
+  html += '<div style="text-align:center;margin-bottom:16px"><img src="' + (typeof LOGO_SRC !== 'undefined' ? LOGO_SRC : '') + '" style="height:72px;width:auto" alt="Wisconsin"><div class="bold" style="margin-top:8px;font-size:12pt">State of Wisconsin</div><div style="font-size:11pt">Department of Health Services</div></div>';
+  html += '<h1 class="doc-main-title" style="font-size:13pt;margin-bottom:16px">Instructions to Complete the Power of Attorney for Health Care Form</h1>';
+  html += '<p style="margin-bottom:10px"><span class="bold">To Whom It May Concern:</span></p>';
+  html += '<p style="margin-bottom:8px">Enclosed is the Power of Attorney for Health Care form you requested. The Power of Attorney for Health Care form makes it possible for adults in Wisconsin to authorize other individuals (called health care agents) to make health care decisions on their behalf should they become incapacitated. It may also be used to make or refuse to make an anatomical gift (donation of all or part of the human body to take effect upon the death of the donor).</p>';
+  html += '<p style="margin-bottom:8px">Be sure to read all six (6) pages of the form carefully and understand it before you complete and sign it. Talk with those you select as your health care agent and the alternate health care agent about your thoughts and beliefs about medical treatment. Neither the health care agent nor the alternate may be your health care provider, an employee of a health care facility in which you are a patient, or a spouse of any of those persons, unless he or she is also your relative.</p>';
+  html += '<p style="margin-bottom:8px">Two witnesses are required. Witnesses must be at least 18 years of age, not related to you by blood, marriage, domestic partnership, or adoption, and not directly financially responsible for your health care. A witness cannot be a health care provider who is serving you at the time the document is signed or an employee of the health care provider unless the employee is a chaplain or social worker. A witness cannot be an employee of an inpatient health care facility in which you are a patient, unless the employee is a chaplain or social worker. A witness cannot be your health care agent nor have a claim on any portion of your estate. Valid witnesses acting in good faith are immune from civil or criminal liability.</p>';
+  html += '<p style="margin-bottom:8px">An original signed form may be kept on file with your physician or other primary care provider. A signed Power of Attorney for Health Care form may also be kept in a safe, easily accessible place until needed. You should make relatives and friends aware that you have created a Power of Attorney for Health Care and the location where it is kept. The document may, but is not required to be, filed for safekeeping, for a fee, with the Register in Probate of your county of residence. The fee for filing with the Register in Probate has been set by State Statute at $8.00. A Power of Attorney for Health Care that is an original signed form or is a legible photocopy or electronic facsimile copy is presumed to be valid. If you have both a Power of Attorney for Health Care and a Declaration to Physicians, the provisions of a valid Power of Attorney for Health Care supersede any directly conflicting provisions of a valid Declaration to Physicians.</p>';
+  html += '<p style="margin-bottom:12px">One copy of the Power of Attorney for Health Care form is available free to anyone who sends a stamped, self-addressed, business-size envelope to: Power of Attorney, Division of Public Health, P.O. Box 2659, Madison, Wisconsin 53701-2659. The form is also available on the Department of Health Services Web page, https://www.dhs.wisconsin.gov/forms/advdirectives/index.htm.</p>';
+  html += '<p><span class="bold">Definitions</span> \'Department\' means the Department of Health Services. \'Health Care\' means any care, treatment, service, or procedure to maintain, diagnose, or treat an individual\'s physical or mental condition. \'Health care decision\' means an informed decision in the exercise of the right to accept, maintain, discontinue, or refuse health care. \'Incapacity\' means the inability to receive and evaluate information effectively or to communicate decisions to such an extent that the individual lacks the capacity to manage his or her health care decisions. \'Feeding tube\' means a medical tube through which nutrition or hydration is administered into the vein, stomach, nose, mouth or other body opening of the declarant.</p>';
+  html += '<p style="margin-top:8px"><span class="bold">Who may sign:</span> An individual who is of sound mind and has attained age 18 may voluntarily execute a Power of Attorney for Health Care.</p>';
+  html += '<p style="margin-top:8px"><span class="bold">When does it take effect?</span> Unless otherwise specified, an individual\'s Power of Attorney for Health Care takes effect upon a finding of incapacity by 2 physicians, or a physician and a psychologist, nurse practitioner, or physician assistant who personally examine the principal and sign a statement specifying that the principal has incapacity.</p>';
+  html += '<p style="margin-top:8px"><span class="bold">Revocation:</span> A principal may revoke his or her Power of Attorney for Health Care at any time by destroying the instrument, executing a written and dated statement of revocation, verbally expressing revocation in the presence of 2 witnesses, or executing a subsequent Power of Attorney for Health Care instrument.</p>';
+  html += '<p class="small" style="margin-top:16px;font-style:italic;border-top:1px solid #000;padding-top:8px"><span class="bold">Important:</span> You must keep pages 1–6 of the form together as your executed document. Copies distributed to health care providers, etc. must include pages 1–6.</p>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; State of Wisconsin &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── POA FORM PAGE 1: NOTICE ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<div class="doc-state-header"><div class="dept">Department of Health Services — Division of Public Health</div>';
+  html += '<div class="form-num">F-00085 (Rev. 02/2020) &nbsp;&nbsp; STATE OF WISCONSIN &nbsp;&nbsp; Chapter 155.30(1),(3) &nbsp;&nbsp; 608-266-1251</div></div>';
+  html += '<h1 class="doc-main-title">Power of Attorney for Health Care Document</h1>';
+  html += '<h2 class="doc-section-title center" style="text-align:center;font-size:12pt;margin-bottom:12px">Notice to Person Making This Document</h2>';
+  html += '<p style="margin-bottom:8px">You have the right to make decisions about your health care. No health care may be given to you over your objection, and necessary health care may not be stopped or withheld if you object.</p>';
+  html += '<p style="margin-bottom:8px">Because your health care providers in some cases may not have had the opportunity to establish a long-term relationship with you, they are often unfamiliar with your beliefs and values and the details of your family relationships. This poses a problem if you become physically or mentally unable to make decisions about your health care.</p>';
+  html += '<p style="margin-bottom:8px">In order to avoid this problem, you may sign this legal document to specify the person whom you want to make health care decisions for you if you are unable to make those decisions personally. That person is known as your health care agent. You should take some time to discuss your thoughts and beliefs about medical treatment with the person or persons whom you have specified. You may state in this document any types of health care that you do or do not desire, and you may limit the authority of your health care agent. If your health care agent is unaware of your desires with respect to a particular health care decision, he or she is required to determine what would be in your best interests in making the decision.</p>';
+  html += '<p style="margin-bottom:8px">This is an important legal document. It gives your agent broad powers to make health care decisions for you. It revokes any prior power of attorney for health care that you may have made. If you wish to change your power of attorney for health care, you may revoke this document at any time by destroying it, by directing another person to destroy it in your presence, by signing a written and dated statement or by stating that it is revoked in the presence of two witnesses. If you revoke, you should notify your agent, health care provider(s), and any other person(s) to whom you have given a copy. If your agent is your spouse or your domestic partner, and your marriage is annulled or you are divorced or your domestic partnership is terminated after signing this document, the document is invalid.</p>';
+  html += '<p style="margin-bottom:8px">You may also use this document to make or refuse to make an anatomical gift upon your death. If you use this document to make or refuse to make an anatomical gift, this document revokes any prior record of gift that you may have made. You may revoke or change any anatomical gift that you make by this document by crossing out the anatomical gifts provision in this document.</p>';
+  html += '<p><span class="bold">Do not sign this document unless you clearly understand it.</span> It is suggested that you keep the original of this document on file with your physician or other primary care provider.</p>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── POA FORM PAGE 2: CREATION + DESIGNATION ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<h1 class="doc-main-title" style="margin-bottom:12px">Power of Attorney for Health Care</h1>';
+  html += '<p style="margin-bottom:12px">Document made this <span class="field-line" style="min-width:30px">'+poaDay+'</span> day of <span class="field-line" style="min-width:100px">'+poaMonth+'</span>, <span class="field-line" style="min-width:60px">'+poaYear+'</span>.</p>';
+  html += '<h2 class="doc-section-title">Creation of Power of Attorney for Health Care</h2>';
+  html += '<p style="margin-bottom:8px">I, <span class="field-line" style="min-width:340px">'+p+(dob?', DOB: '+dob:'')+(addr?', '+addr+', '+city+', '+state+' '+zip:'')+'</span></p>';
+  html += '<p style="margin-bottom:8px"><em>(print name, address, and date of birth)</em></p>';
+  html += '<p style="margin-bottom:8px">being of sound mind, intend by this document to create a power of attorney for health care. My executing this power of attorney for health care is voluntary. Despite the creation of this power of attorney for health care, I expect to be fully informed about and allowed to participate in any health care decision for me, to the extent that I am able. For the purposes of this document, "health care decision" means an informed decision to accept, maintain, discontinue, or refuse any care, treatment, service, or procedure to maintain, diagnose, or treat my physical or mental condition.</p>';
+  html += '<p style="margin-bottom:12px">In addition, I may, by this document, specify my wishes with respect to making an anatomical gift upon my death.</p>';
+  html += '<h2 class="doc-section-title">Designation of Health Care Agent</h2>';
+  html += '<p style="margin-bottom:8px">If I am no longer able to make health care decisions for myself, due to my incapacity,</p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">I hereby designate</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="field-line" style="min-width:440px">'+ag+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="field-line" style="min-width:440px">'+agAddr+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="field-line" style="min-width:440px">'+agPh+'</span></p>';
+  html += '<p style="margin-bottom:8px"><em>(print name, address and telephone number)</em> to be my health care agent for the purpose of making health care decisions on my behalf. If he or she is ever unable or unwilling to do so,</p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">I hereby designate</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="field-line" style="min-width:440px">'+alt+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="field-line" style="min-width:440px">'+altAddr+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="field-line" style="min-width:440px">'+altPh+'</span></p>';
+  html += '<p style="margin-bottom:8px"><em>(print name, address and telephone number)</em></p>';
+  html += '<p>to be my alternate health care agent for the purpose of making health care decisions on my behalf. Neither my health care agent nor my alternate health care agent whom I have designated is my health care provider, an employee of my health care provider, an employee of a health care facility in which I am a patient or a spouse of any of those persons, unless he or she is also my relative. For purposes of this document, "incapacity" exists if 2 physicians or a physician and a psychologist, nurse practitioner, or physician assistant who have personally examined me sign a statement that specifically expresses their opinion that I have a condition that means that I am unable to receive and evaluate information effectively or to communicate decisions to such an extent that I lack the capacity to manage my health care decisions. A copy of that statement must be attached to this document.</p>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── POA FORM PAGE 3: GENERAL AUTHORITY + NURSING HOME ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<h2 class="doc-section-title">General Statement of Authority Granted</h2>';
+  html += '<p style="margin-bottom:8px">Unless I have specified otherwise in this document, if I ever have incapacity I instruct my health care provider to obtain the health care decision of my health care agent, if I need treatment, for all of my health care and treatment. I have discussed my desires thoroughly with my health care agent and believe that he or she understands my philosophy regarding the health care decisions I would make if I were able. I desire that my wishes be carried out through the authority given to my health care agent under this document.</p>';
+  html += '<p style="margin-bottom:12px">If I am unable, due to my incapacity, to make a health care decision, my health care agent is instructed to make the health care decision for me, but my health care agent should try to discuss with me any specific proposed health care if I am able to communicate in any manner, including by blinking my eyes. If this communication cannot be made, my health care agent shall base his or her decision on any health care choices that I have expressed prior to the time of the decision. If I have not expressed a health care choice about the health care in question and communication cannot be made, my health care agent shall base his or her health care decision on what he or she believes to be in my best interest.</p>';
+  html += '<h2 class="doc-section-title">Limitations on Mental Health Treatment</h2>';
+  html += '<p style="margin-bottom:12px">My health care agent may not admit or commit me on an inpatient basis to an institution for mental diseases, an intermediate care facility for the persons with intellectual disability, a state treatment facility, or a treatment facility. My health care agent may not consent to experimental mental health research or psychosurgery, electroconvulsive treatment or drastic mental health treatment procedures for me.</p>';
+  html += '<h2 class="doc-section-title">Admission to Nursing Homes or Community-Based Residential Facilities</h2>';
+  html += '<p style="margin-bottom:8px">My health care agent may admit me to a nursing home or community-based residential facility for short-term stays for recuperative care or respite care.</p>';
+  html += '<p style="margin-bottom:8px">If I have checked "Yes" to the following, my health care agent may admit me for a purpose other than recuperative care or respite care, but if I have checked "No" to the following, my health care agent may not so admit me:</p>';
+  html += '<p style="margin:8px 0 4px 24px">1. A nursing home &nbsp;&nbsp; '+box(nh,'yes')+' Yes &nbsp;&nbsp; '+box(nh,'no')+' No</p>';
+  html += '<p style="margin:4px 0 8px 24px">2. A community-based residential facility &nbsp;&nbsp; '+box(cbrf,'yes')+' Yes &nbsp;&nbsp; '+box(cbrf,'no')+' No</p>';
+  html += '<p style="margin-bottom:12px">If I have not checked either "Yes" or "No" immediately above, my health care agent may admit me only for short-term stays for recuperative care or respite care.</p>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── POA FORM PAGE 4: FEEDING TUBE + PREGNANCY + DESIRES + INSPECTION ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<h2 class="doc-section-title">Provision of Feeding Tube</h2>';
+  html += '<p style="margin-bottom:8px">If I have checked "Yes" to the following, my health care agent may have a feeding tube withheld or withdrawn from me, unless my physician, physician assistant, or nurse practitioner has advised that, in his or her professional judgment, this will cause me pain or will reduce my comfort. If I have checked "No" to the following, my health care agent may not have a feeding tube withheld or withdrawn from me.</p>';
+  html += '<p style="margin-bottom:8px">My health care agent may not have orally ingested nutrition or hydration withheld or withdrawn from me unless provision of the nutrition or hydration is medically contraindicated.</p>';
+  html += '<p style="margin:8px 0 12px 24px">Withhold or withdraw a feeding tube &nbsp;&nbsp; '+box(ft,'yes')+' Yes &nbsp;&nbsp; '+box(ft,'no')+' No</p>';
+  html += '<p style="margin-bottom:12px">If I have not checked either "Yes" or "No" immediately above, my health care agent may not have a feeding tube withdrawn from me.</p>';
+  html += '<h2 class="doc-section-title">Health Care Decisions for Pregnant Women</h2>';
+  html += '<p style="margin-bottom:8px">If I have checked "Yes" to the following, my health care agent may make health care decisions for me even if my agent knows I am pregnant. If I have checked "No" to the following, my health care agent may not make health care decisions for me if my health care agent knows I am pregnant.</p>';
+  html += '<p style="margin:8px 0 8px 24px">Health care decision if I am pregnant &nbsp;&nbsp; '+box(preg,'yes')+' Yes &nbsp;&nbsp; '+box(preg,'no')+' No</p>';
+  html += '<p style="margin-bottom:12px">If I have not checked either "Yes" or "No" immediately above, my health care agent may not make health care decisions for me if my health care agent knows I am pregnant.</p>';
+  html += '<h2 class="doc-section-title">Statement of Desires, Special Provisions or Limitations</h2>';
+  html += '<p style="margin-bottom:8px">In exercising authority under this document, my health care agent shall act consistently with my following stated desires, if any, and is subject to any special provisions or limitations that I specify. The following are any specific desires, provisions or limitations that I wish to state (add more items if needed):</p>';
+  var desireLines = (desires||'').split('\n');
+  for (var di=0;di<3;di++){
+    html += '<p style="margin:6px 0 2px 16px">'+(di+1)+'. <span class="field-line" style="min-width:380px">'+(desireLines[di]||'')+'</span></p>';
+  }
+  html += '<h2 class="doc-section-title" style="margin-top:14px">Inspection and Disclosure of Information Relating to My Physical or Mental Health</h2>';
+  html += '<p style="margin-bottom:8px">Subject to any limitations in this document, my health care agent has the authority to do all of the following:</p>';
+  html += '<p style="margin:4px 0 4px 24px">a) Request, review, and receive any information, oral or written, regarding my physical or mental health, including medical and hospital records.</p>';
+  html += '<p style="margin:4px 0 4px 24px">b) Execute on my behalf any documents that may be required in order to obtain this information.</p>';
+  html += '<p style="margin:4px 0">c) Consent to the disclosure of this information.</p>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── POA FORM PAGE 5: SIGNATURES + WITNESSES ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<p style="margin-bottom:12px"><em>(The principal and the witnesses all must sign the document at the same time.)</em></p>';
+  html += '<h2 class="doc-section-title">Signature of Principal</h2>';
+  html += '<p style="margin-bottom:4px"><em>(Person creating the Power of Attorney for Health Care)</em></p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature</span></div><div class="sig-field"><span class="sig-line">'+poaDate+'</span><span class="sig-caption">Date</span></div></div></div>';
+  html += '<p style="margin:8px 0 12px;font-size:9.5pt"><em>(The signing of this document by the principal revokes all previous powers of attorney for health care documents.)</em></p>';
+  html += '<h2 class="doc-section-title">Statement of Witnesses</h2>';
+  html += '<p style="margin-bottom:10px">I know the principal personally and I believe him or her to be of sound mind and at least 18 years of age. I believe that his or her execution of this power of attorney for health care is voluntary. I am at least 18 years of age, am not related to the principal by blood, marriage, domestic partnership, or adoption, and am not directly financially responsible for the principal\'s health care. I am not a health care provider who is serving the principal at this time, an employee of the health care provider, other than a chaplain or a social worker, or an employee, other than a chaplain or a social worker, of an inpatient health care facility in which the declarant is a patient. I am not the principal\'s health care agent. To the best of my knowledge, I am not entitled to and do not have a claim on the principal\'s estate.</p>';
+  html += '<p class="bold" style="margin-bottom:6px">Witness Number 1</p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">(Print) Name</span></div><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">Date</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Address</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature</span></div></div></div>';
+  html += '<p class="bold" style="margin:14px 0 6px">Witness Number 2</p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">(Print) Name</span></div><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">Date</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Address</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature</span></div></div></div>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── POA FORM PAGE 6: AGENT STATEMENT + ANATOMICAL GIFTS ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<h2 class="doc-section-title">Statement of Health Care Agent and Alternate Health Care Agent</h2>';
+  html += '<p style="margin-bottom:8px">I understand that <span class="field-line" style="min-width:200px">'+p+'</span> has designated me to be his or her health care agent or alternate health care agent if he or she is ever found to have incapacity and unable to make health care decisions himself or herself. <span class="field-line" style="min-width:200px">'+p+'</span> has discussed his or her desires regarding health care decisions with me.</p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Agent\'s Signature</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">'+agAddr+'</span><span class="sig-caption">Address</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Alternate\'s Signature</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">'+altAddr+'</span><span class="sig-caption">Address</span></div></div></div>';
+  html += '<p style="margin:12px 0 8px;font-size:9.5pt">Failure to execute a power of attorney for health care document under chapter 155 of the Wisconsin Statutes creates no presumption about the intent of any individual with regard to his or her health care decisions. This power of attorney for health care is executed as provided in chapter 155 of the Wisconsin Statutes.</p>';
+  html += '<h2 class="doc-section-title">Anatomical Gifts <span style="font-weight:normal;font-size:10pt">(optional)</span></h2>';
+  html += '<p style="margin-bottom:8px">Upon my death:</p>';
+  html += '<p style="margin:4px 0 4px 16px">'+box(anatGift,'specific')+' I wish to donate only the following organs or parts: <span class="field-line" style="min-width:200px">'+(anatGift==='specific'?d.anatGiftSpec||'':'')+' </span></p>';
+  html += '<p style="margin:4px 0 4px 16px">'+box(anatGift,'any')+' I wish to donate any needed organ or part.</p>';
+  html += '<p style="margin:4px 0 4px 16px">'+box(anatGift,'body')+' I wish to donate my body for anatomical study if needed.</p>';
+  html += '<p style="margin:4px 0 4px 16px">'+box(anatGift,'refuse')+' I refuse to make an anatomical gift. (If this revokes a prior commitment that I have made to make an anatomical gift to a designated donee, I will attempt to notify the donee to which or to whom I agreed to donate.)</p>';
+  html += '<p style="margin-top:8px;font-size:9.5pt"><em>Failing to check any of the lines immediately above creates no presumption about my desire to make or refuse to make an anatomical gift.</em></p>';
+  html += '<div class="sig-block" style="margin-top:16px"><div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature</span></div><div class="sig-field"><span class="sig-line">'+poaDate+'</span><span class="sig-caption">Date</span></div></div></div>';
+  html += '<div class="doc-footer">F-00085 (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  return html;
+}
+
+
+// ── Living Will Render ──────────────────────────────────────
+function renderLivingWill(d) {
+  var p = d.patientName||'', addr = d.address||'', city = d.city||'', state = d.state||'WI', zip = d.zip||'',
+      dob = d.dob||'', lwDate = d.lwDate||'',
+      termFT = d.termFeedingTube||'', pvsSust = d.pvsSustaining||'', pvsFT = d.pvsFeedingTube||'';
+  function box(val,match){return '<span class="doc-checkbox">'+(val===match?'&#x2611;':'&#x2610;')+'</span>';}
+
+  var html = '';
+
+  // ── LIVING WILL INSTRUCTIONS PAGE 1 ──
+  html += '<div class="doc-page pg-break-before">';
+  html += '<div style="text-align:center;margin-bottom:16px"><img src="' + (typeof LOGO_SRC !== 'undefined' ? LOGO_SRC : '') + '" style="height:72px;width:auto" alt="Wisconsin"><div class="bold" style="margin-top:8px;font-size:12pt">State of Wisconsin</div><div style="font-size:11pt">Department of Health Services</div></div>';
+  html += '<p style="margin-bottom:10px">The Declaration to Health Care Professionals (Living Will) form makes it possible for adults in Wisconsin to state their preferences for life-sustaining procedures and feeding tubes in the event, the person is in a terminal condition or persistent vegetative state.</p>';
+  html += '<p class="bold" style="margin-bottom:10px">Be sure to read both sides of the form carefully, and understand before you complete and sign it.</p>';
+  html += '<p style="margin-bottom:10px">The withholding or withdrawal of any medication, life-sustaining procedure or feeding tube may not be made if the attending physician, physician assistant, or advanced practice registered nurse advises that doing so will cause pain or reduce comfort, and the pain or discomfort cannot be alleviated through pain relief measures.</p>';
+  html += '<p class="bold" style="margin-bottom:6px">Two witnesses are required.</p>';
+  html += '<p style="margin-bottom:10px">Witnesses must be at least 18 years of age, not related to you by blood, marriage or adoption, and not directly financially responsible for your health care. Witnesses may not be persons who know they are entitled to or have a claim on any portion of your estate. A witness cannot be a health care provider who is serving you at the time the document is signed, an employee of the health care provider, other than a chaplain or a social worker, or an employee other than a chaplain or social worker of an inpatient health care facility in which you are a patient. Valid witnesses acting in good faith are immune from civil or criminal liability.</p>';
+  html += '<p class="bold" style="margin-bottom:6px">When you have completed and signed the form:</p>';
+  html += '<ul style="padding-left:24px;margin-bottom:10px">';
+  html += '<li style="margin-bottom:4px">The original signed form should be kept in a safe, easily accessible place until needed.</li>';
+  html += '<li style="margin-bottom:4px">You should make relatives and friends aware that you have signed the document and the location where it is kept.</li>';
+  html += '<li style="margin-bottom:4px">A copy of the signed form may be kept on file with your physician, physician assistant, or advanced practice registered nurse. You are responsible for notifying your attending physician, physician assistant, or advanced practice registered nurse of the existence of the Declaration.</li>';
+  html += '<li style="margin-bottom:4px">The document may, but is not required to be, filed for safekeeping, for a fee, with the Register in Probate of your county of residence. The fee for filing with the Register in Probate has been set by State at $8.</li>';
+  html += '</ul>';
+  html += '<p style="margin-bottom:8px">A Declaration that is in its original form or is a legible photocopy or electronic facsimile copy is presumed to be valid.</p>';
+  html += '<p style="margin-bottom:8px">If you have both a Declaration to Health Care Professionals and a Power of Attorney for Health Care, the provisions of a valid Power of Attorney for Health Care supersede any directly conflicting provisions of a valid Declaration to Health Care Professionals.</p>';
+  html += '<p>Up to four copies of the Declaration to Health Care Professionals are available free to anyone who sends a stamped, self-addressed, business-size envelope to Living Will, Division of Public Health, PO Box 2659, Madison, Wisconsin 53701-2659. The form is also available on the Department of Health Services Web page https://www.dhs.wisconsin.gov/forms/advdirectives/index.htm.</p>';
+  html += '<div class="doc-footer">F-00060A (Rev. 02/2020) &nbsp;&nbsp; State of Wisconsin &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── LIVING WILL INSTRUCTIONS PAGE 2 ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<h2 class="doc-section-title">Instructions for Declaration to Health Care Professionals Form</h2>';
+  html += '<h2 class="doc-section-title" style="margin-top:12px">Definitions</h2>';
+  html += '<p style="margin-bottom:6px"><span class="bold">"Declaration"</span> means a written, witnessed document voluntarily executed by the declarant under State Statute (1), but is not limited in form or substance to that provided in State Statute 154.03(2).</p>';
+  html += '<p style="margin-bottom:6px"><span class="bold">"Feeding tube"</span> means a medical tube through which nutrition or hydration is administered into the vein, stomach, nose, mouth or other body opening of a qualified patient.</p>';
+  html += '<p style="margin-bottom:6px"><span class="bold">"Terminal condition"</span> means an incurable condition caused by injury or illness that reasonable medical judgment finds would cause death imminently, so that the application of life-sustaining procedures serves only to postpone the moment of death.</p>';
+  html += '<p style="margin-bottom:6px"><span class="bold">"Persistent vegetative state"</span> means a condition that reasonable, medical judgment finds constitutes complete and irreversible loss of all the functions of the cerebral cortex and results in a complete, chronic and irreversible cessation of all cognitive functioning and consciousness and a complete lack of behavioral responses that indicate cognitive functioning, although autonomic functions continue.</p>';
+  html += '<p style="margin-bottom:6px"><span class="bold">"Qualified patient"</span> means a declarant who has been diagnosed, and certified in writing to be afflicted with a terminal condition or to be in a persistent vegetative state by two health care professionals and one of whom is a physician, who have personally examined the declarant.</p>';
+  html += '<p style="margin-bottom:6px"><span class="bold">"Life-sustaining procedure"</span> means any medical procedure or intervention that, in the judgment of the attending health care professional, would serve only to prolong the dying process but not avert death when applied to a qualified patient. Life-sustaining procedure includes assistance in respiration, artificial maintenance of blood pressure and heart rate, blood transfusion, kidney dialysis and other similar procedures, but does not include (a) the alleviation of pain by administering medication or by performing a medical procedure; or (b) the provision of nutrition or hydration.</p>';
+  html += '<h2 class="doc-section-title" style="margin-top:12px">Effect of Declaration</h2>';
+  html += '<p style="margin-bottom:8px">The desires of a qualified patient who is competent supersede the effect of the Declaration at all times. If a qualified patient is incompetent at the time of the decision to withhold or withdraw life-sustaining procedures or feeding tubes, a Declaration executed under this chapter is presumed to be valid.</p>';
+  html += '<h2 class="doc-section-title">Revocation of Declaration</h2>';
+  html += '<p style="margin-bottom:8px">A Declaration may be revoked at any time by the declarant by any of the following methods:</p>';
+  html += '<ol style="margin:0 0 10px 28px"><li style="margin-bottom:4px">By being canceled, defaced, obliterated, burned, torn or otherwise destroyed by the declarant or by some person who is directed by the declarant and who acts in the presence of the declarant.</li><li style="margin-bottom:4px">By a written revocation, signed and dated by the declarant expressing the intent to revoke.</li><li style="margin-bottom:4px">By a verbal expression by the declarant of his or her intent to revoke the Declaration, but only if the declarant or a person acting on behalf of the declarant notifies the attending physician, physician assistant, or advanced practice registered nurse of the revocation.</li><li style="margin-bottom:4px">By executing a subsequent Declaration.</li></ol>';
+  html += '<div class="doc-footer">F-00060A (Rev. 02/2020) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── LIVING WILL FORM PAGE 1 ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<div class="doc-state-header"><div class="dept">Department of Health Services — Division of Public Health</div>';
+  html += '<div class="form-num">F-00060 (02/2020) &nbsp; Page 1 of 2 &nbsp;&nbsp; STATE OF WISCONSIN &nbsp;&nbsp; Wis. Stat. §154.03(1)(2)</div></div>';
+  html += '<p class="bold center" style="margin-bottom:10px;text-align:center">PLEASE BE SURE YOU READ THE FORM CAREFULLY AND UNDERSTAND IT BEFORE YOU COMPLETE AND SIGN IT</p>';
+  html += '<h1 class="doc-main-title">Declaration to Health Care Professionals (Wisconsin Living Will)</h1>';
+  html += '<p style="margin-bottom:10px">I, <span class="field-line" style="min-width:340px">'+p+'</span> being of sound mind, voluntarily state my desire that my dying not be prolonged under the circumstances specified in this document. Under those circumstances, I direct that I be permitted to die naturally. If I am unable to give directions regarding the use of life-sustaining procedures or feeding tubes, I intend that my family and physician, physician assistant or advanced practice registered nurse, honor this document as the final expression of my legal right to refuse medical or surgical treatment.</p>';
+  html += '<p style="margin-bottom:10px">1. If I have a <span class="bold underline">TERMINAL CONDITION</span>, as determined by a physician, physician assistant, or advanced practice registered nurse, who have personally examined me, and if a physician who has also personally examined me agrees with that determination, I do not want my dying to be artificially prolonged and I do not want life-sustaining procedures to be used. In addition, the following are my directions regarding the use of feeding tubes:</p>';
+  html += '<p style="margin:6px 0 6px 32px">'+box(termFT,'yes')+' YES, I want feeding tubes used if I have a terminal condition.</p>';
+  html += '<p style="margin:6px 0 12px 32px">'+box(termFT,'no')+' NO, I do not want feeding tubes used if I have a terminal condition.</p>';
+  html += '<p style="margin-bottom:10px;font-style:italic;font-size:10pt">If you have not checked either box, feeding tubes will be used.</p>';
+  html += '<p style="margin-bottom:10px">2. If I am in a <span class="bold underline">PERSISTENT VEGETATIVE STATE</span>, as determined by a physician, physician assistant, or advanced practice registered nurse who have personally examined me, and if a physician who has also personally examined me agrees with that determination, the following are my directions regarding the use of life-sustaining procedures:</p>';
+  html += '<p style="margin:6px 0 6px 32px">'+box(pvsSust,'yes')+' YES, I want life-sustaining procedures used if I am in a persistent vegetative state.</p>';
+  html += '<p style="margin:6px 0 12px 32px">'+box(pvsSust,'no')+' NO, I do not want life-sustaining procedures used if I am in a persistent vegetative state.</p>';
+  html += '<p style="margin-bottom:10px;font-style:italic;font-size:10pt">If you have not checked either box, life-sustaining procedures will be used.</p>';
+  html += '<p style="margin-bottom:10px">3. If I am in a <span class="bold underline">PERSISTENT VEGETATIVE STATE</span>, as determined by a physician, physician assistant, or advanced practice registered nurse who has personally examined me, and if a physician who has also personally examined me agrees with that determination, the following are my directions regarding the use of feeding tubes:</p>';
+  html += '<p style="margin:6px 0 6px 32px">'+box(pvsFT,'yes')+' YES, I want feeding tubes used if I am in a persistent vegetative state.</p>';
+  html += '<p style="margin:6px 0 12px 32px">'+box(pvsFT,'no')+' NO, I do not want feeding tubes used if I am in a persistent vegetative state.</p>';
+  html += '<p style="margin-bottom:10px;font-style:italic;font-size:10pt">If you have not checked either box, feeding tubes will be used.</p>';
+  html += '<p style="font-size:9.5pt">If you are interested in more information about the significant terms used in this document, see section 154.01 of the Wisconsin Statutes or the information accompanying this document.</p>';
+  html += '<div class="doc-footer">F-00060 (02/2020) Page 1 of 2 &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── LIVING WILL FORM PAGE 2 ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<div class="form-num" style="margin-bottom:10px;font-size:9.5pt">F-00060 (02/2020) Page 2 of 2</div>';
+  html += '<p style="margin-bottom:12px"><span class="bold">ATTENTION: You and the 2 witnesses must sign the document at the same time.</span></p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signed</span></div><div class="sig-field"><span class="sig-line">'+lwDate+'</span><span class="sig-caption">Date</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">'+(addr?(addr+', '+city+', '+state+' '+zip):'')+'</span><span class="sig-caption">Address</span></div><div class="sig-field"><span class="sig-line">'+dob+'</span><span class="sig-caption">Date of Birth</span></div></div></div>';
+  html += '<p style="margin:14px 0 8px">I believe that the person signing this document is of sound mind. I am an adult and am not related to the person signing this document by blood, marriage or adoption. I am not entitled to and do not have a claim on any portion of the person\'s estate and am not otherwise restricted by law from being a witness.</p>';
+  html += '<div class="sig-block">';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Witness Signature</span></div><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">Date Signed</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Print Name</span></div></div>';
+  html += '<div class="sig-row" style="margin-top:14px"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Witness Signature</span></div><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">Date Signed</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Print Name</span></div></div></div>';
+  html += '<h2 class="doc-section-title" style="margin-top:16px">Directives to Attending Physician, Physician Assistant, or Advanced Practice Registered Nurse</h2>';
+  html += '<ol style="margin:8px 0 8px 28px">';
+  html += '<li style="margin-bottom:6px">This document authorizes the withholding or withdrawal of life-sustaining procedures or of feeding tubes when a physician and another physician, physician assistant, or advanced practice registered nurse, one of whom is the attending health care professional, have personally examined and certified in writing that the patient has a terminal condition or is in a persistent vegetative state.</li>';
+  html += '<li style="margin-bottom:6px">The choices in this document were made by a competent adult. Under the law, the patient\'s stated desires must be followed unless you believe that withholding or withdrawing life-sustaining procedures or feeding tubes would cause the patient pain or reduced comfort and that the pain or discomfort cannot be alleviated through pain relief measures. If the patient\'s stated desires are that life-sustaining procedures or feeding tubes be used, this directive must be followed.</li>';
+  html += '<li style="margin-bottom:6px">If you feel that you cannot comply with this document, you must make a good faith attempt to transfer the patient to another physician, physician assistant, or advanced practice registered nurse who will comply. Refusal or failure to make a good faith attempt to do so constitutes unprofessional conduct.</li>';
+  html += '<li style="margin-bottom:6px">If you know that the patient is pregnant, this document has no effect during her pregnancy.</li></ol>';
+  html += '<p style="text-align:center;margin:8px 0">* * * * *</p>';
+  html += '<p style="font-size:9.5pt;margin-bottom:6px">The person making this living will may use the following space to record the names of those individuals and health care providers to whom he or she has given copies of this document:</p>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:6px 0">&nbsp;</span>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:6px 0">&nbsp;</span>';
+  html += '<div class="doc-footer">F-00060 (02/2020) Page 2 of 2 &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  return html;
+}
+
+
+// ── Final Disposition Render ────────────────────────────────
+function renderFinalDisposition(d) {
+  var p = d.patientName||'', addr = d.address||'', city = d.city||'', state = d.state||'WI', zip = d.zip||'',
+      fdDate = d.fdDate||'', fdDay = d.fdDay||'', fdMonth = d.fdMonth||'',
+      rep = d.repName||'', repAddr = d.repAddress||'', repPh = d.repPhone||'',
+      s1 = d.succ1Name||'', s1Addr = d.succ1Address||'', s1Ph = d.succ1Phone||'',
+      s2 = d.succ2Name||'', s2Addr = d.succ2Address||'', s2Ph = d.succ2Phone||'',
+      dirs = d.fdDirections||'';
+  function fl(v,w){return '<span class="field-line" style="min-width:'+(w||'180px')+'">'+(v||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')+'</span>';}
+
+  var html = '';
+
+  // ── FD PAGE 1: Purpose + Definitions ──
+  html += '<div class="doc-page pg-break-before">';
+  html += '<div class="doc-state-header"><div class="dept">Department of Health Services — Division of Public Health</div>';
+  html += '<div class="form-num">F-00086 (05/10) &nbsp;&nbsp; STATE OF WISCONSIN &nbsp;&nbsp; Wis. Stat. Chapter 154.30 (8) &nbsp;&nbsp; Page 1 of 5</div></div>';
+  html += '<h1 class="doc-main-title">Authorization for Final Disposition Instructions</h1>';
+  html += '<h2 class="doc-section-title">Purpose of the Authorization for Final Disposition:</h2>';
+  html += '<p style="margin-bottom:10px">When properly completed and signed in the presence of two competent adult witnesses or a notary public, this voluntary document allows a competent adult (the declarant) to designate another competent adult (the representative or an alternative representative) to make funeral arrangements on behalf of the declarant. This document allows the declarant to give his or her chosen representative information about the declarant\'s preferences for final disposition and funeral service.</p>';
+  html += '<p style="margin-bottom:10px">Please read and understand the following information and the form before completing the form.</p>';
+  html += '<h2 class="doc-section-title">Definitions from Wisconsin State Statutes Chapter 154, Section 154.30 (8) (f):</h2>';
+  html += '<ul style="padding-left:24px;margin-bottom:10px">';
+  html += '<li style="margin-bottom:4px"><span class="bold">"Authorization for final disposition"</span> means a document that satisfies the conditions under sub. (8) (d) or (dm), and that is voluntarily executed by a declarant under sub. (8), but is not limited in form or substance to that provided in sub. (8).</li>';
+  html += '<li style="margin-bottom:4px"><span class="bold">"Declarant"</span> means an individual who executes an authorization for final disposition.</li>';
+  html += '<li style="margin-bottom:4px"><span class="bold">"Estranged"</span> means being physically and emotionally alienated for a period of time, at the time of the decedent\'s death, and clearly demonstrating an absence of due affection, trust, and regard.</li>';
+  html += '<li style="margin-bottom:4px"><span class="bold">"Final disposition"</span> means disposition of a decedent\'s remains, including any of the following: (1) Arrangements for a viewing. (2) A funeral ceremony, memorial service, graveside service, or other last rite. (3) A burial, cremation and burial, or other disposition, or donation of the decedent\'s body.</li>';
+  html += '<li style="margin-bottom:4px"><span class="bold">"Representative"</span> means an individual specifically designated in an authorization for final disposition or, if that individual is unable or unwilling to carry out the declarant\'s decisions and preferences, a successor representative designated in the authorization for final disposition to do so.</li>';
+  html += '</ul>';
+  html += '<p style="margin-bottom:8px">154.30 (8) (e) If any of the following has a direct professional relationship with or provides professional services directly to the declarant and is not related to the declarant by blood, marriage, or adoption, that person may not serve as a representative: (1) A funeral director. (2) A crematory authority. (3) A cemetery authority. (4) An employee of a funeral director, crematory authority, or cemetery authority. (5) A health care provider. (6) A social worker.</p>';
+  html += '<div class="doc-footer">F-00086 (05/10) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── FD PAGE 2: Important Information ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<h1 class="doc-main-title" style="margin-bottom:12px">Authorization for Final Disposition</h1>';
+  html += '<div class="doc-state-header" style="margin-bottom:10px"><div class="form-num">F-00086 (05/10) Page 2 of 5</div></div>';
+  html += '<h2 class="doc-section-title">Important Information</h2>';
+  html += '<p class="bold" style="margin-bottom:6px">Declarant:</p>';
+  html += '<ol style="margin:0 0 12px 28px"><li style="margin-bottom:4px">Properly completing this document (with all required signatures) automatically revokes any prior authorization for final disposition that the declarant may have signed.</li><li style="margin-bottom:4px">The declarant may revoke this authorization for final disposition at any time by executing a new authorization form; by signing and dating a statement declaring this document to be cancelled, revoked or void; by destroying or defacing this form; or by writing on this form, "I hereby revoke this declaration of final disposition," and signing and dating that statement.</li><li style="margin-bottom:4px">If the declarant is physically unable to sign an authorization for final disposition, the authorization shall be signed in the declarant\'s name by an individual at the declarant\'s express direction and in his or her presence; such a proxy signing shall take place or be acknowledged by the declarant in the presence of 2 witnesses or a notary public.</li></ol>';
+  html += '<p class="bold" style="margin-bottom:6px">Representative:</p>';
+  html += '<ol style="margin:0 0 12px 28px"><li style="margin-bottom:4px">An individual who is authorized by this document to control the declarant\'s final disposition may accept the control, may decline to exercise the control, or may, after accepting the control, resign it.</li><li style="margin-bottom:4px">If there is a dispute about the declarant\'s disposition, the probate court for the county in which the decedent last resided has exclusive jurisdiction over the case.</li><li style="margin-bottom:4px">The representative signing this document is expected to carry out the directions, instructions, and suggestions for disposition specified in this document unless the directions, instructions, and suggestions exceed available resources from the decedent\'s estate or are unlawful or unless there is no realistic possibility of compliance.</li></ol>';
+  html += '<div class="doc-footer">F-00086 (05/10) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── FD PAGE 3: Main Form ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<div class="doc-state-header"><div class="dept">Department of Health Services — Division of Public Health</div>';
+  html += '<div class="form-num">F-00086 (05/10) &nbsp;&nbsp; STATE OF WISCONSIN &nbsp;&nbsp; Wis. Stat. Chapter 154.30 (8) (f) &nbsp;&nbsp; Page 3 of 5</div></div>';
+  html += '<h1 class="doc-main-title" style="margin-bottom:14px">Authorization for Final Disposition</h1>';
+  html += '<p style="margin-bottom:6px">I, <span class="field-line" style="min-width:360px">'+p+'</span></p>';
+  html += '<p style="margin-bottom:4px">(Print Name)</p>';
+  html += '<p style="margin-bottom:6px">Residing at <span class="field-line" style="min-width:380px">'+(addr?(addr+', '+city+', '+state+' '+zip):'')+'</span>,</p>';
+  html += '<p style="margin-bottom:4px">(Print Mailing Address)</p>';
+  html += '<p style="margin-bottom:10px">being of sound mind, willfully and voluntarily make known by this document my desire that, upon my death, the final disposition of my remains be under the control of my representative under the requirements of section 154.30, Wisconsin statutes, and, with respect to that final disposition only, I hereby appoint the representative and any successor representative named in this document. All decisions made by my representative or any successor representative with respect to the final disposition of my remains are binding.</p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">Name of Representative</span> <span class="field-line" style="min-width:280px">'+rep+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">Address</span> <span class="field-line" style="min-width:340px">'+repAddr+'</span></p>';
+  html += '<p style="margin-bottom:12px"><span class="bold">Telephone number (include area code)</span> <span class="field-line" style="min-width:180px">'+repPh+'</span></p>';
+  html += '<p style="margin-bottom:8px">If my representative dies, becomes incapacitated, resigns, refuses to act, ceases to be qualified, or cannot be located within the time necessary to control the final disposition of my remains, I hereby appoint the following individuals, each to act alone and successively, in the order specified, to serve as my successor representative:</p>';
+  html += '<p style="margin-bottom:4px">1. <span class="bold">Name of first successor representative</span> <span class="field-line" style="min-width:240px">'+s1+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">Address</span> <span class="field-line" style="min-width:380px">'+s1Addr+'</span></p>';
+  html += '<p style="margin-bottom:10px"><span class="bold">Telephone number (include area code)</span> <span class="field-line" style="min-width:180px">'+s1Ph+'</span></p>';
+  html += '<p style="margin-bottom:4px">2. <span class="bold">Name of second successor representative</span> <span class="field-line" style="min-width:230px">'+s2+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">Address</span> <span class="field-line" style="min-width:380px">'+s2Addr+'</span></p>';
+  html += '<p style="margin-bottom:4px"><span class="bold">Telephone number (include area code)</span> <span class="field-line" style="min-width:180px">'+s2Ph+'</span></p>';
+  html += '<div class="doc-footer">F-00086 (05/10) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── FD PAGE 4: Directions + Declarant Signature ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<div class="form-num" style="margin-bottom:10px;font-size:9.5pt">Authorization for Final Disposition — F-00086 (05/10) Page 4 of 5</div>';
+  html += '<h2 class="doc-section-title">Suggested Special Directions</h2>';
+  html += '<p style="margin-bottom:4px">1. Arrangements for a viewing.</p>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:4px 0">'+(dirs?dirs.split('\n')[0]||'':'')+'</span>';
+  html += '<p style="margin:8px 0 4px">2. Funeral ceremony, memorial service, graveside service, or other last rite.</p>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:4px 0">'+(dirs?dirs.split('\n')[1]||'':'')+'</span>';
+  html += '<p style="margin:8px 0 4px">3. Burial, cremation and burial or other disposition, or donation of the declarant\'s body after death.</p>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:4px 0">'+(dirs?dirs.split('\n')[2]||'':'')+'</span>';
+  html += '<h2 class="doc-section-title" style="margin-top:12px">Suggested Instructions Concerning Religious Observances</h2>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:4px 0">'+(dirs?dirs.split('\n')[3]||'':'')+'</span>';
+  html += '<h2 class="doc-section-title" style="margin-top:12px">Suggested Source of Funds for Implementing Final Disposition Directions and Instructions</h2>';
+  html += '<span class="field-line" style="min-width:100%;display:block;margin:4px 0">&nbsp;</span>';
+  html += '<p style="margin:14px 0 8px">This authorization becomes effective upon my death. I hereby revoke any prior authorization for final disposition that I may have signed before the date that this document is signed.</p>';
+  html += '<p style="margin-bottom:12px">I hereby agree that any funeral director, crematory authority, or cemetery authority that receives a copy of this document may act under it. Any modification or revocation of this document is not effective as to a funeral director, crematory authority, or cemetery authority until the funeral director, crematory authority, or cemetery authority receives actual notice of the modification or revocation. No funeral director, crematory authority, or cemetery authority may be liable because of reliance on a copy of this document.</p>';
+  html += '<p style="margin-bottom:12px">The representative and any successor representative, by accepting appointment under this document, assume the powers and duties specified for a representative under section 154.30, Wisconsin statutes.</p>';
+  html += '<p style="margin-bottom:8px">Signed this <span class="field-line" style="min-width:40px">'+fdDay+'</span> day of <span class="field-line" style="min-width:160px">'+fdMonth+'</span></p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature of declarant</span></div></div></div>';
+  html += '<p style="margin:14px 0 8px">I hereby accept appointment as representative for the control of final disposition of the declarant\'s remains.</p>';
+  html += '<p style="margin-bottom:8px">Signed this <span class="field-line" style="min-width:40px">'+fdDay+'</span> day of <span class="field-line" style="min-width:160px">'+fdMonth+'</span></p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature of representative</span></div></div></div>';
+  html += '<div class="doc-footer">F-00086 (05/10) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  // ── FD PAGE 5: Successor Sigs + Witnesses/Notary ──
+  html += '<hr class="pg-break"><div class="doc-page pg-break-before">';
+  html += '<div class="form-num" style="margin-bottom:10px;font-size:9.5pt">Authorization for Final Disposition — F-00086 (05/10) Page 5 of 5</div>';
+  html += '<p style="margin-bottom:8px">I hereby accept appointment as successor representative for the control of final disposition of the declarant\'s remains.</p>';
+  html += '<p style="margin-bottom:6px">Signed this <span class="field-line" style="min-width:40px"></span> day of <span class="field-line" style="min-width:160px"></span></p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature of first successor representative</span></div></div></div>';
+  html += '<p style="margin:12px 0 6px">Signed this <span class="field-line" style="min-width:40px"></span> day of <span class="field-line" style="min-width:160px"></span></p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature of second successor representative</span></div></div></div>';
+  html += '<p style="margin:14px 0 8px">I attest that the declarant signed or acknowledged this authorization for final disposition in my presence and that the declarant appears to be of sound mind and not subject to duress, fraud, or undue influence. I further attest that I am not the representative or the successor representative appointed under this document that I am aged at least 18, and that I am not related to the declarant by blood, marriage, or adoption.</p>';
+  for (var wi=1;wi<=2;wi++){
+    html += '<div class="sig-block" style="margin-bottom:14px"><div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">'+wi+'st Witness (print name)</span></div></div>';
+    html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature</span></div></div>';
+    html += '<div class="sig-row"><div class="sig-field" style="flex:3"><span class="sig-line">&nbsp;</span><span class="sig-caption">Address</span></div></div>';
+    html += '<div class="sig-row"><div class="sig-field" style="flex:2"><span class="sig-line">&nbsp;</span><span class="sig-caption">Date (Month, Day, Year)</span></div></div></div>';
+  }
+  html += '<p style="margin:10px 0 8px">In lieu of two witnesses signing this form, the declarant may sign it in the presence of a notary public.</p>';
+  html += '<p style="margin-bottom:6px">State of Wisconsin, County of <span class="field-line" style="min-width:200px"></span></p>';
+  html += '<p style="margin-bottom:6px">On (date) <span class="field-line" style="min-width:160px">'+fdDate+'</span>, before me personally appeared (name of declarant) <span class="field-line" style="min-width:200px">'+p+'</span> known to me or satisfactorily proven to be the individual whose name is specified in this document as the declarant and who has acknowledged that he or she executed the document for the purposes expressed in it. I attest that the declarant appears to be of sound mind and not subject to duress, fraud, or undue influence.</p>';
+  html += '<div class="sig-block"><div class="sig-row"><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">Notary Public Name</span></div><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">Signature</span></div></div>';
+  html += '<div class="sig-row"><div class="sig-field"><span class="sig-line">&nbsp;</span><span class="sig-caption">My commission expires (date)</span></div></div></div>';
+  html += '<div class="doc-footer">F-00086 (05/10) &nbsp;&nbsp; <span style="color:#c0392b;font-weight:600">SIMULATION DOCUMENT — NOT A REAL LEGAL DOCUMENT</span></div>';
+  html += '</div>';
+
+  return html;
+}
+
+
+// ── UI + Generate Logic ─────────────────────────────────────
+function onDocToggle(){
+  ['dnr','poa','lw','fd'].forEach(function(id){
+    var cb = document.getElementById('inc_'+id);
+    var sec = document.getElementById('sec_'+id);
+    if(cb&&sec) sec.className = 'form-section' + (cb.checked?'':' hidden');
+  });
+}
+
+function calcAge(){
+  var dob=document.getElementById('dob').value, el=document.getElementById('ageDisplay');
+  if(!dob){el.value='';return}
+  var t=new Date(),b=new Date(dob),a=t.getFullYear()-b.getFullYear();
+  var m=t.getMonth()-b.getMonth();
+  if(m<0||(m===0&&t.getDate()<b.getDate()))a--;
+  el.value=a+' yrs';
+}
+function fmtDate(s){if(!s)return'';var p=s.split('-');var M=['January','February','March','April','May','June','July','August','September','October','November','December'];return M[+p[1]-1]+' '+parseInt(p[2])+', '+p[0]}
+function dateToDay(s){if(!s)return'';return parseInt(s.split('-')[2])||'';}
+function dateToMonth(s){if(!s)return'';var p=s.split('-');var M=['January','February','March','April','May','June','July','August','September','October','November','December'];return M[+p[1]-1]+', '+p[0];}
+
+function gatherData(){
+  function gv(id){var el=document.getElementById(id);return el?el.value:'';}
+  function grv(name){var el=document.querySelector('input[name="'+name+'"]:checked');return el?el.value:'';}
+  var simDate=gv('simDate');
+  return{
+    patientName:gv('patientName'), dob:fmtDate(gv('dob')), age:gv('ageDisplay'),
+    gender:gv('gender'), address:gv('address'), city:gv('city'), state:gv('state')||'WI', zip:gv('zip'),
+    simDate:simDate,
+    // DNR
+    dnrDate:fmtDate(simDate), dnrPhysName:gv('dnrPhysName'), dnrPhysPhone:gv('dnrPhysPhone'),
+    // POA
+    poaDate:fmtDate(simDate), poaDay:dateToDay(simDate), poaMonth:dateToMonth(simDate), poaYear:simDate?simDate.split('-')[0]:'',
+    agentName:gv('agentName'), agentAddress:gv('agentAddress'), agentPhone:gv('agentPhone'),
+    altName:gv('altName'), altAddress:gv('altAddress'), altPhone:gv('altPhone'),
+    nursingHome:grv('nursingHome'), cbrf:grv('cbrf'), feedingTube:grv('feedingTube'), pregnancy:grv('pregnancy'),
+    poaDesires:gv('poaDesires'), anatGift:grv('anatGift'), anatGiftSpec:gv('anatGiftSpec'),
+    // Living Will
+    lwDate:fmtDate(simDate),
+    termFeedingTube:grv('termFT'), pvsSustaining:grv('pvsSust'), pvsFeedingTube:grv('pvsFT'),
+    // Final Disposition
+    fdDate:fmtDate(simDate), fdDay:dateToDay(simDate), fdMonth:dateToMonth(simDate),
+    repName:gv('repName'), repAddress:gv('repAddress'), repPhone:gv('repPhone'),
+    succ1Name:gv('succ1Name'), succ1Address:gv('succ1Address'), succ1Phone:gv('succ1Phone'),
+    succ2Name:gv('succ2Name'), succ2Address:gv('succ2Address'), succ2Phone:gv('succ2Phone'),
+    fdDirections:gv('fdDirections')
+  };
+}
+
+function generateDocs(){
+  var d = gatherData();
+  var incDNR = document.getElementById('inc_dnr').checked;
+  var incPOA = document.getElementById('inc_poa').checked;
+  var incLW  = document.getElementById('inc_lw').checked;
+  var incFD  = document.getElementById('inc_fd').checked;
+  if(!incDNR&&!incPOA&&!incLW&&!incFD){
+    alert('Please select at least one document to generate.'); return;
+  }
+  var scenarioName = document.getElementById('scenarioName').value;
+  var parts = [];
+  if(incDNR) parts.push(renderDNR(d));
+  if(incPOA) parts.push(renderPOA(d));
+  if(incLW)  parts.push(renderLivingWill(d));
+  if(incFD)  parts.push(renderFinalDisposition(d));
+
+  var docHtml = '<div class="preview-docs">';
+  docHtml += (scenarioName?'<div class="scenario-badge">SCENARIO: '+escHtml(scenarioName)+'</div>':'');
+  docHtml += '<div class="legal-doc">' + parts.join('') + '</div></div>';
+  document.getElementById('previewContent').innerHTML = docHtml;
+}
+
+function escHtml(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]});}
+
+function resetForm(){
+  if(!confirm('Clear all fields and start over?'))return;
+  document.querySelectorAll('input[type=text],input[type=date],textarea').forEach(function(i){i.value='';});
+  document.querySelectorAll('select').forEach(function(s){s.selectedIndex=0;});
+  document.querySelectorAll('input[type=radio]').forEach(function(r){r.checked=false;});
+  document.getElementById('ageDisplay').value='';
+  ['dnr','poa','lw','fd'].forEach(function(id){
+    var cb=document.getElementById('inc_'+id);
+    if(cb){cb.checked=false;}
+    var sec=document.getElementById('sec_'+id);
+    if(sec){sec.className='form-section hidden';}
+  });
+  document.getElementById('previewContent').innerHTML = EMPTY_STATE;
+}
+
+var EMPTY_STATE = '<div class="preview-empty"><svg width="60" height="60" viewBox="0 0 64 64" fill="none"><rect x="8" y="4" width="40" height="52" rx="3" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="16" x2="40" y2="16" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="24" x2="40" y2="24" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="32" x2="32" y2="32" stroke="#8892A4" stroke-width="2"/><circle cx="48" cy="48" r="12" fill="#E8ECF2" stroke="#8892A4" stroke-width="2"/><line x1="48" y1="43" x2="48" y2="53" stroke="#8892A4" stroke-width="2"/><line x1="43" y1="48" x2="53" y2="48" stroke="#8892A4" stroke-width="2"/></svg><p>Select the documents to include, fill in patient details, then click <strong>Generate Legal Documents</strong>.</p></div>';
+
+document.getElementById('headerLogo').src=LOGO_SRC;
+// Inject LOGO_SRC into render functions that reference it via string
+</script>
+</body>
+</html>

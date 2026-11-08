@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skills Evaluation Sheet — EMS Sim Lab</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .step-row { display: grid; grid-template-columns: 1fr 64px 34px; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .step-row input[type=number] { text-align: center; padding: 8px 4px; }
+  .sec-row input { font-weight: 700; color: var(--amber); }
+  .row-tools { display: flex; gap: 8px; margin-top: 6px; }
+  .paper .fields { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 10px; margin: 12px 0; }
+  .paper .fields div { border-bottom: 1px solid #333; padding-top: 14px; font-size: 10px; text-transform: uppercase; color: #555; }
+  .paper .pts { width: 70px; text-align: center; }
+  .paper tr.section td { background: #eef1f4; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper .total td { font-weight: 700; }
+  .paper .fail-list li { margin: 4px 0; list-style: none; }
+  .paper .fail-list { padding-left: 0; }
+  .paper .sig { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 24px; }
+  .paper .sig div { border-top: 1px solid #333; padding-top: 4px; font-size: 10px; text-transform: uppercase; color: #555; }
+  .copies-note { font-size: .8rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head" style="margin-bottom:18px">
+    <h1>✅ Skills Evaluation Sheet</h1>
+    <p class="muted" style="margin:0">Build a point-based check-off sheet. Lines starting with <code>#</code> become section headers. Drafts save in this browser automatically.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" onclick="printDoc()">🖨 Print / Save PDF</button>
+    <button class="btn" onclick="copyText(standaloneHtml(state.skill || 'Skills sheet', document.getElementById('doc').innerHTML), 'Printable HTML copied')">Copy HTML</button>
+    <button class="btn" onclick="copyText(JSON.stringify(state, null, 2), 'Sheet JSON copied')">Copy JSON</button>
+    <label class="btn" style="margin:0;text-transform:none;letter-spacing:0;font-size:.92rem;color:var(--text)">Import JSON<input type="file" accept=".json,application/json" hidden onchange="readJsonFile(this, d => { load(d); toast('Sheet imported'); })"></label>
+    <button class="btn ghost" onclick="load(EXAMPLE); toast('Example loaded')">Load example</button>
+    <button class="btn ghost" onclick="load(blank()); toast('Cleared')">Clear</button>
+  </div>
+
+  <div class="gen">
+    <form class="gen-form" id="form" onsubmit="event.preventDefault()">
+      <fieldset>
+        <legend>Sheet</legend>
+        <div class="grid">
+          <div><label>Program / organization</label><input data-k="org" placeholder="e.g. County EMS Academy"></div>
+          <div><label>Skill name</label><input data-k="skill" placeholder="e.g. Oxygen Administration"></div>
+          <div class="grid g3">
+            <div><label>Level</label><select data-k="level"><option>EMR</option><option>EMT</option><option>AEMT</option><option>Paramedic</option></select></div>
+            <div><label>Time limit</label><input data-k="timeLimit" placeholder="5 min"></div>
+            <div><label>Pass at (pts)</label><input data-k="passScore" placeholder="auto"></div>
+          </div>
+          <div><label>Instructions to candidate</label><textarea data-k="instructions"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Steps</legend>
+        <div class="step-row" style="margin-bottom:2px"><label>Step</label><label style="text-align:center">Pts</label><span></span></div>
+        <div id="steps"></div>
+        <div class="row-tools">
+          <button type="button" class="btn small" onclick="addStep(false)">+ Step</button>
+          <button type="button" class="btn small" onclick="addStep(true)">+ Section header</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Critical criteria</legend>
+        <div><label>Automatic fail if candidate… (one per line)</label><textarea data-k="fails" style="min-height:110px"></textarea></div>
+      </fieldset>
+    </form>
+
+    <div class="paper-wrap"><div class="paper" id="doc"></div></div>
+  </div>
+</main>
+
+<script src="../assets/common.js"></script>
+<script>
+const KEY = 'emssim.skills.draft';
+
+function blank() {
+  return { org:'', skill:'', level:'EMT', timeLimit:'', passScore:'', instructions:'',
+    steps: [{ text:'', pts:1 }], fails:'' };
+}
+
+const EXAMPLE = {
+  org: 'EMS Sim Lab Academy', skill: 'Oxygen Administration by Non-Rebreather Mask', level: 'EMT', timeLimit: '5 min', passScore: '9',
+  instructions: 'Your patient is short of breath and requires high-concentration oxygen. Assemble the equipment and administer oxygen by non-rebreather mask. Then discontinue oxygen when instructed.',
+  steps: [
+    { text: '# Preparation', section: true },
+    { text: 'Takes or verbalizes appropriate PPE precautions', pts: 1 },
+    { text: 'Inspects tank, removes seal, and cracks the valve', pts: 1 },
+    { text: 'Attaches regulator and checks for leaks', pts: 1 },
+    { text: 'Opens tank and verifies pressure is adequate', pts: 1 },
+    { text: '# Administration', section: true },
+    { text: 'Attaches non-rebreather mask to regulator', pts: 1 },
+    { text: 'Prefills the reservoir bag', pts: 1 },
+    { text: 'Sets flow rate to an appropriate high-flow setting', pts: 1 },
+    { text: 'Explains the procedure to the patient', pts: 1 },
+    { text: 'Applies and adjusts mask to the patient’s face', pts: 1 },
+    { text: '# Discontinuation', section: true },
+    { text: 'Removes mask from the patient', pts: 1 },
+    { text: 'Shuts off regulator and relieves pressure', pts: 1 }
+  ],
+  fails: 'Did not take or verbalize PPE precautions\nAllowed the reservoir bag to fully collapse while mask was on the patient\nDid not prefill the reservoir bag\nExceeded the time limit\nPerformed any improper technique resulting in potential harm to the patient'
+};
+
+let state = store.get(KEY) || blank();
+
+const form = document.getElementById('form');
+form.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.k) state[el.dataset.k] = el.value;
+  else if (el.dataset.i !== undefined) {
+    const st = state.steps[+el.dataset.i];
+    if (el.dataset.f === 'pts') st.pts = el.value === '' ? '' : Math.max(0, +el.value);
+    else { st.text = el.value; st.section = el.value.trim().startsWith('#'); }
+  } else return;
+  save(); renderDoc();
+  if (el.dataset.f === 'text') syncRowStyle(el);
+});
+
+function syncRowStyle(el) {
+  const row = el.closest('.step-row');
+  const sec = el.value.trim().startsWith('#');
+  row.classList.toggle('sec-row', sec);
+  row.querySelector('input[type=number]').style.visibility = sec ? 'hidden' : 'visible';
+}
+
+function fillForm() {
+  form.querySelectorAll('[data-k]').forEach(el => { el.value = state[el.dataset.k] || (el.tagName === 'SELECT' ? el.options[0].value : ''); });
+  renderSteps();
+}
+function renderSteps() {
+  document.getElementById('steps').innerHTML = state.steps.map((s, i) => `
+    <div class="step-row ${s.section ? 'sec-row' : ''}">
+      <input data-i="${i}" data-f="text" value="${escapeHtml(s.text)}" placeholder="${s.section ? '# Section name' : 'Describe the step'}">
+      <input data-i="${i}" data-f="pts" type="number" min="0" value="${s.pts ?? 1}" style="visibility:${s.section ? 'hidden' : 'visible'}" aria-label="Points">
+      <button type="button" class="btn small ghost" onclick="removeStep(${i})" aria-label="Remove">✕</button>
+    </div>`).join('');
+}
+function addStep(section) {
+  state.steps.push(section ? { text: '# ', section: true } : { text: '', pts: 1 });
+  save(); renderSteps(); renderDoc();
+  const inputs = document.querySelectorAll('#steps input[data-f=text]');
+  inputs[inputs.length - 1].focus();
+}
+function removeStep(i) { state.steps.splice(i, 1); if (!state.steps.length) state.steps.push({ text:'', pts:1 }); save(); renderSteps(); renderDoc(); }
+function load(d) { state = Object.assign(blank(), JSON.parse(JSON.stringify(d))); save(); fillForm(); renderDoc(); }
+function save() { store.set(KEY, state); }
+
+function renderDoc() {
+  const s = state;
+  const steps = s.steps.filter(x => x.text.trim());
+  const total = steps.filter(x => !x.section).reduce((a, x) => a + (+x.pts || 0), 0);
+  const pass = s.passScore || (total ? Math.ceil(total * 0.7) + ' (70%)' : '—');
+  const fails = (s.fails || '').split('\n').map(x => x.trim()).filter(Boolean);
+
+  document.getElementById('doc').innerHTML = `
+    <div class="doc-head">
+      <div>
+        <div class="sim-banner">${s.org ? escapeHtml(s.org) + ' · ' : ''}Skills evaluation</div>
+        <h1>${s.skill ? escapeHtml(s.skill) : '<span class="empty">Untitled skill</span>'}</h1>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#555">Level: <strong>${escapeHtml(s.level)}</strong>${s.timeLimit ? '<br>Time limit: <strong>' + escapeHtml(s.timeLimit) + '</strong>' : ''}</div>
+    </div>
+    <div class="fields"><div>Candidate</div><div>Evaluator</div><div>Date</div></div>
+    <div class="fields" style="grid-template-columns:1fr 1fr 1fr"><div>Start time</div><div>Stop time</div><div>Attempt #</div></div>
+    ${s.instructions ? `<div class="box" style="margin-bottom:10px"><strong>Instructions to candidate:</strong> ${escapeHtml(s.instructions)}</div>` : ''}
+
+    <table>
+      <tr><th>Step</th><th class="pts">Possible</th><th class="pts">Awarded</th></tr>
+      ${steps.length ? steps.map(x => x.section
+        ? `<tr class="section"><td colspan="3">${escapeHtml(x.text.replace(/^#\s*/, ''))}</td></tr>`
+        : `<tr><td>${escapeHtml(x.text)}</td><td class="pts">${+x.pts || 0}</td><td class="pts"></td></tr>`).join('')
+        : '<tr><td colspan="3" class="empty">Add steps in the form</td></tr>'}
+      <tr class="total"><td style="text-align:right">TOTAL</td><td class="pts">${total}</td><td class="pts"></td></tr>
+    </table>
+    <div style="font-size:12px;margin:2px 0 10px">Minimum passing score: <strong>${escapeHtml(String(pass))}</strong></div>
+
+    <div class="avoid-break">
+      <h2>Critical criteria — automatic fail</h2>
+      ${fails.length ? `<ul class="fail-list">${fails.map(f => `<li><span class="check"></span>&nbsp; ${escapeHtml(f)}</li>`).join('')}</ul>` : '<div class="box"><span class="empty">None listed</span></div>'}
+    </div>
+
+    <div class="avoid-break">
+      <h2>Result &amp; comments</h2>
+      <div style="margin:6px 0"><span class="check"></span> PASS &nbsp;&nbsp;&nbsp; <span class="check"></span> FAIL</div>
+      <div class="box" style="min-height:80px"></div>
+      <div class="sig"><div>Evaluator signature</div><div>Candidate signature</div></div>
+    </div>
+    <p style="font-size:10px;color:#888;margin-top:20px">Generated with EMS Sim Lab. Training material — follow your program’s official evaluation standards.</p>`;
+}
+
+renderTopbar('../', 'home');
+fillForm();
+renderDoc();
+</script>
+</body>
+</html>

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mock Discharge Summary Generator — StatChart-Sim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B2A4A; --navy-light:#253660; --gold:#C9871E; --gold-light:#F0A830;
+  --bg:#EDF0F5; --white:#FFF; --gray-100:#F8F9FC; --gray-200:#E8ECF2;
+  --gray-300:#CDD4E0; --gray-500:#8892A4; --gray-700:#4A5568; --text:#1B2A4A;
+  --danger:#C0392B; --success:#27AE60; --warn:#E67E22;
+  --font-ui:'IBM Plex Sans',sans-serif; --font-doc:'Libre Baskerville',Georgia,serif;
+  --radius:8px; --shadow:0 2px 12px rgba(27,42,74,.10); --shadow-lg:0 8px 32px rgba(27,42,74,.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+.app-header{background:var(--navy);color:#fff;padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.header-brand{display:flex;align-items:center;gap:13px}
+.header-badge{width:44px;height:auto;flex-shrink:0;display:block}
+.header-title{font-size:1rem;font-weight:600;letter-spacing:.01em;line-height:1.2}
+.header-subtitle{font-size:.68rem;color:var(--gold-light);font-weight:300;letter-spacing:.07em;text-transform:uppercase;margin-top:2px}
+.header-actions{display:flex;gap:10px;align-items:center}
+
+/* LAYOUT */
+.app-body{display:grid;grid-template-columns:430px 1fr;flex:1;height:calc(100vh - 62px);overflow:hidden}
+
+/* FORM PANEL */
+.form-panel{background:var(--white);overflow-y:auto;border-right:1px solid var(--gray-200);display:flex;flex-direction:column}
+.form-section{padding:18px 24px;border-bottom:1px solid var(--gray-200)}
+.section-label{font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--gray-200)}
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:.77rem;font-weight:500;color:var(--gray-700);margin-bottom:5px}
+label .req{color:var(--danger);margin-left:2px}
+label .hint{font-size:.68rem;color:var(--gray-500);font-weight:400}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:8px 11px;font-family:var(--font-ui);font-size:.85rem;border:1.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-100);color:var(--text);transition:border-color .15s,box-shadow .15s;outline:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,74,.08);background:#fff}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234A5568' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+
+/* checkbox pills */
+.check-group{display:flex;flex-wrap:wrap;gap:6px}
+.check-pill{display:inline-flex;align-items:center;padding:4px 11px;border:1.5px solid var(--gray-300);border-radius:20px;font-size:.77rem;cursor:pointer;transition:all .12s;background:var(--gray-100);user-select:none;color:var(--gray-700)}
+.check-pill input{display:none}
+.check-pill:has(input:checked){background:var(--navy);border-color:var(--navy);color:#fff}
+.check-pill:hover{border-color:var(--navy)}
+
+/* med grid */
+.med-search-input{margin-bottom:8px}
+.med-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;max-height:270px;overflow-y:auto;padding:8px;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:var(--gray-100)}
+.med-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;font-size:.77rem;cursor:pointer;transition:background .1s;color:var(--gray-700);user-select:none}
+.med-item:hover{background:var(--gray-200)}
+.med-item input[type=checkbox]{width:14px;height:14px;flex-shrink:0;accent-color:var(--navy);cursor:pointer}
+.med-item.is-target{background:rgba(27,42,74,.08);color:var(--navy);font-weight:600}
+.med-item input:disabled+span,.med-item input:disabled{opacity:.4;cursor:not-allowed}
+.med-count{font-size:.72rem;color:var(--gray-500);margin-bottom:6px}
+.med-count .count-num{font-weight:700;color:var(--navy)}
+.med-count .count-warn{color:var(--danger);font-weight:600}
+
+/* level pills */
+.level-group{display:flex;gap:8px}
+.level-pill{flex:1;text-align:center;padding:7px 4px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:.77rem;font-weight:600;cursor:pointer;transition:all .12s;background:var(--gray-100);user-select:none}
+.level-pill input{display:none}
+.level-pill:has(input:checked)[data-level=none]{background:var(--success);border-color:var(--success);color:#fff}
+.level-pill:has(input:checked)[data-level=subtle]{background:var(--warn);border-color:var(--warn);color:#fff}
+.level-pill:has(input:checked)[data-level=chaos]{background:var(--danger);border-color:var(--danger);color:#fff}
+.level-pill:hover{border-color:var(--navy)}
+.field-note{font-size:.69rem;color:var(--gray-500);margin-top:5px;line-height:1.4}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:var(--radius);font-family:var(--font-ui);font-size:.82rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;text-decoration:none;letter-spacing:.01em;white-space:nowrap}
+.btn-primary{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-primary:hover{background:var(--gold-light);border-color:var(--gold-light);transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,135,30,.4)}
+.btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.btn-outline:hover{background:rgba(255,255,255,.1);border-color:#fff}
+.btn-ghost{background:transparent;color:var(--gray-700);border-color:var(--gray-300);padding:6px 14px;font-size:.8rem}
+.btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+.generate-btn{width:100%;justify-content:center;padding:13px;font-size:.92rem;background:var(--navy);color:#fff;border-color:var(--navy);margin:16px 0 2px}
+.generate-btn:hover{background:var(--navy-light);transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+.reroll-btn{width:100%;justify-content:center;margin-top:2px}
+
+/* PREVIEW PANEL */
+.preview-panel{overflow-y:auto;background:#D8DCE5;padding:28px;display:flex;flex-direction:column;align-items:center}
+.preview-toolbar{width:100%;max-width:720px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.preview-toolbar h2{font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-500)}
+.preview-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray-500);text-align:center;gap:14px;padding:60px 20px}
+.preview-empty p{font-size:.86rem;max-width:280px;line-height:1.5}
+
+/* DISCHARGE DOCUMENT */
+.discharge-doc{width:100%;max-width:720px;background:#fff;box-shadow:var(--shadow-lg);border-radius:2px;font-family:var(--font-doc);color:#111;padding:42px 46px;font-size:10pt;line-height:1.4}
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:20px}
+.doc-title{font-size:23pt;font-weight:700;color:#000;line-height:1.05}
+.doc-patient-info{margin-top:10px;font-size:9.5pt;line-height:1.65}
+.doc-patient-info b{font-weight:700}
+.doc-logo{flex-shrink:0;width:96px;height:auto}
+.doc-section-head{font-size:13pt;font-weight:700;margin:6px 0 8px}
+.doc-divider{border:none;border-top:1.5px solid #000;margin:8px 0}
+.doc-body{display:grid;grid-template-columns:1fr 252px;gap:0 24px}
+.doc-field-label{font-weight:700;font-size:10pt;text-decoration:underline;margin-top:11px;margin-bottom:3px;display:block}
+.doc-field-label:first-child{margin-top:0}
+.doc-field-value{font-size:9.5pt;margin-bottom:4px;line-height:1.5}
+.vitals-label{font-weight:700;text-decoration:underline;font-size:10pt;margin-bottom:7px;display:block}
+.vitals-table{width:100%;border-collapse:collapse;font-size:9.5pt}
+.vitals-table td{border:1px solid #000;padding:5px 8px;vertical-align:middle}
+.vitals-table td:nth-child(odd){font-weight:700;background:#f2f2f2;white-space:nowrap;width:1%}
+.doc-full-divider{border:none;border-top:1.5px solid #000;margin:12px 0 8px}
+.doc-full-label{font-weight:700;font-size:10pt;display:block;margin-bottom:3px}
+.doc-full-value{font-size:9.5pt;line-height:1.5;margin-bottom:4px}
+.doc-page-break{margin-top:34px;padding-top:22px;border-top:2px solid #000}
+.doc-med-title{font-size:15pt;font-weight:700;margin-bottom:4px}
+.doc-med-sub{font-size:8.5pt;font-style:italic;color:#555;margin-bottom:14px;font-family:var(--font-ui)}
+.med-table{width:100%;border-collapse:collapse;font-size:9pt}
+.med-table th{text-align:left;font-size:7.5pt;text-transform:uppercase;letter-spacing:.05em;color:#555;border-bottom:1.5px solid #000;padding:4px 6px;font-family:var(--font-ui)}
+.med-table td{padding:5px 6px;border-bottom:1px solid #ddd;vertical-align:top}
+.med-table td.num{color:#888;width:24px}
+.med-table td.name{font-weight:700;width:34%}
+.med-table tr.target-row{background:rgba(27,42,74,.04)}
+.scenario-badge{background:var(--navy);color:#fff;font-size:8pt;font-family:var(--font-ui);padding:5px 12px;border-radius:3px;margin-bottom:16px;display:inline-block;letter-spacing:.04em}
+.doc-footer{margin-top:24px;padding-top:10px;border-top:1px solid #ccc;font-family:var(--font-ui);font-size:7.5pt;color:#888;text-align:center;letter-spacing:.03em}
+
+/* PRINT */
+@media print{
+  @page{margin:0.5in}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff}
+  .app-header,.form-panel,.preview-toolbar{display:none!important}
+  .app-body{display:block;height:auto;overflow:visible}
+  .preview-panel{padding:0;background:#fff;display:block;overflow:visible}
+  .discharge-doc{box-shadow:none;max-width:100%;padding:0;font-size:11pt}
+  .doc-page-break{page-break-before:always;border-top:none;margin-top:0;padding-top:0}
+  .scenario-badge{display:none}
+}
+@media(max-width:900px){.app-body{grid-template-columns:1fr;height:auto}.form-panel{border-right:none}}
+</style>
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/tool-theme.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-brand">
+    <img class="header-badge" id="headerLogo" alt="StatChart-Sim logo">
+    <div>
+      <div class="header-title">Mock Discharge Summary Generator</div>
+      <div class="header-subtitle">StatChart-Sim · High-Fidelity Simulation · Instructor Use Only</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a class="back-link" href="../index.html">← StatChart-Sim</a>
+    <button class="btn btn-outline" onclick="resetForm()">↺ Reset</button>
+    <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="form-panel" id="formPanel">
+
+    <div class="form-section">
+      <div class="section-label">Scenario Info</div>
+      <div class="field">
+        <label>Simulation Scenario Name</label>
+        <input type="text" id="scenarioName" placeholder="e.g. Unit 4 — Cardiac Sim #2" oninput="updatePreview()">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Patient Demographics</div>
+      <div class="field">
+        <label>Patient Name <span class="hint">(simulation only)</span></label>
+        <input type="text" id="patientName" placeholder="Simulated patient name" oninput="updatePreview()">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date of Birth</label>
+          <input type="date" id="dob" onchange="calcAge();updatePreview()">
+        </div>
+        <div class="field">
+          <label>Age <span class="hint">(auto)</span></label>
+          <input type="text" id="ageDisplay" readonly placeholder="—" style="background:#f0f2f5;cursor:default">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date of Discharge</label>
+          <input type="date" id="dischargeDate" onchange="updatePreview()">
+        </div>
+        <div class="field">
+          <label>Gender</label>
+          <select id="gender" onchange="updatePreview()">
+            <option value="">— Select —</option>
+            <option>Male</option><option>Female</option><option>Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Visit Details</div>
+      <div class="field">
+        <label>Provider</label>
+        <select id="provider" onchange="updatePreview()">
+          <option value="">— Select provider —</option>
+          <option>Dr. Henry Jones, Jr.</option>
+          <option>Dr. Niels Bohr</option>
+          <option>Dr. Janet Romulo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Clinic</label>
+        <select id="clinic" onchange="onClinicChange()">
+          <option value="">— Select clinic —</option>
+          <option>Cardiology Clinic</option>
+          <option>Pulmonology / Respiratory Clinic</option>
+          <option>Neurology / Stroke Clinic</option>
+          <option>Endocrinology / Diabetes Clinic</option>
+          <option>Nephrology Clinic</option>
+          <option>Urology Clinic</option>
+          <option>Gastroenterology Clinic</option>
+          <option>Infectious Disease Clinic</option>
+          <option>Behavioral Health Clinic</option>
+          <option>Oncology Clinic</option>
+          <option>Bariatric / Metabolic Clinic</option>
+          <option>Emergency Room</option>
+        </select>
+        <div class="field-note">Choosing a clinic filters the diagnosis list below. <b>Emergency Room</b> unlocks all diagnoses.</div>
+      </div>
+      <div class="field">
+        <label>Follow-up Appointment Scheduled?</label>
+        <select id="followup" onchange="updatePreview()">
+          <option value="">— Select —</option>
+          <option value="7days">Yes, within 7 days</option>
+          <option value="30days">Yes, within 30 days</option>
+          <option value="pcp">No — PCP/Specialist to arrange follow-up</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Clinical Data</div>
+      <div class="field">
+        <label>Primary Diagnosis at Discharge</label>
+        <select id="diagnosis" onchange="onDiagnosisChange();updatePreview()" disabled>
+          <option value="">— Select a clinic first —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Patient Acuity / Condition at Discharge</label>
+        <select id="acuity" onchange="updatePreview()">
+          <option value="">— Select —</option>
+          <option value="good">Stable / Good (Ambulatory)</option>
+          <option value="fair">Stable / Fair (Requires Assistance)</option>
+          <option value="guarded">Guarded (High Risk of Re-admission)</option>
+          <option value="unchanged">Unchanged (Awaiting Further Diagnostics)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Allergies <span class="hint">(check all that apply)</span></label>
+        <div class="check-group" id="allergyGroup">
+          <label class="check-pill"><input type="checkbox" value="Latex" onchange="updatePreview()">Latex</label>
+          <label class="check-pill"><input type="checkbox" value="Tree Nuts" onchange="updatePreview()">Tree Nuts</label>
+          <label class="check-pill"><input type="checkbox" value="Pollen" onchange="updatePreview()">Pollen</label>
+          <label class="check-pill"><input type="checkbox" value="Cinnamon" onchange="updatePreview()">Cinnamon</label>
+          <label class="check-pill"><input type="checkbox" value="Sulfa Drugs" onchange="updatePreview()">Sulfa Drugs</label>
+          <label class="check-pill"><input type="checkbox" value="Penicillin" onchange="updatePreview()">Penicillin</label>
+          <label class="check-pill"><input type="checkbox" value="Amoxicillin" onchange="updatePreview()">Amoxicillin</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Vital Signs</div>
+      <div class="field">
+        <label>Vital Signs Profile <span class="hint">(at time of discharge)</span></label>
+        <select id="vitalsProfile" onchange="generateVitals();updatePreview()">
+          <option value="">— Select acuity level —</option>
+          <option value="WNL">Within Normal Limits</option>
+          <option value="Mild">Mildly Abnormal</option>
+          <option value="Significant">Significantly Abnormal</option>
+        </select>
+        <div class="field-note">Vitals auto-generate from the selected <b>diagnosis</b> + this profile. Edit any value by hand, or re-roll.</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Weight (lbs)</label><input type="number" id="weight" placeholder="e.g. 175" oninput="updatePreview()"></div>
+        <div class="field"><label>Height (in)</label><input type="number" id="height" placeholder="e.g. 68" oninput="updatePreview()"></div>
+      </div>
+      <div class="field-row-3">
+        <div class="field"><label>HR (bpm)</label><input type="text" id="vHR" placeholder="—" oninput="updatePreview()"></div>
+        <div class="field"><label>RR (/min)</label><input type="text" id="vRR" placeholder="—" oninput="updatePreview()"></div>
+        <div class="field"><label>SpO₂ (%)</label><input type="text" id="vSPO2" placeholder="—" oninput="updatePreview()"></div>
+      </div>
+      <div class="field-row-3">
+        <div class="field"><label>B/P (mmHg)</label><input type="text" id="vBP" placeholder="—" oninput="updatePreview()"></div>
+        <div class="field"><label>Temp (°F)</label><input type="text" id="vTemp" placeholder="—" oninput="updatePreview()"></div>
+        <div class="field"><label>Pain (0–10)</label><input type="text" id="vPain" placeholder="—" oninput="updatePreview()"></div>
+      </div>
+      <button class="btn btn-ghost reroll-btn" onclick="generateVitals()">↻ Re-roll Vitals</button>
+    </div>
+
+    <div class="form-section">
+      <div class="section-label">Medications</div>
+      <div class="field">
+        <label>Medication Error Level</label>
+        <div class="level-group">
+          <label class="level-pill" data-level="none"><input type="radio" name="medError" value="none" checked onchange="updatePreview()">None</label>
+          <label class="level-pill" data-level="subtle"><input type="radio" name="medError" value="subtle" onchange="updatePreview()">Subtle</label>
+          <label class="level-pill" data-level="chaos"><input type="radio" name="medError" value="chaos" onchange="updatePreview()">Chaos</label>
+        </div>
+        <div class="field-note">Applies dose errors to <b>target meds only</b>: None = 0% · Subtle ≈ 10% chance each · Chaos ≈ 30% chance each. Errored doses are flagged on screen (hidden on print).</div>
+      </div>
+      <div class="field">
+        <label>Background Medication Noise</label>
+        <select id="medNoise" onchange="updatePreview()">
+          <option value="none">None — Target meds only</option>
+          <option value="moderate">Moderate — +5 to 10 extra meds</option>
+          <option value="complex">Complex — +10 to 25 extra meds</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Target / Anchor Medications <span class="hint">(select 1–5)</span></label>
+        <input type="text" class="med-search-input" id="medSearch" placeholder="🔍  Search medications…" oninput="filterMeds()">
+        <div class="med-count" id="medCount"><span class="count-num">0</span> of 5 target meds selected</div>
+        <div class="med-grid" id="medGrid"></div>
+      </div>
+      <button class="btn generate-btn" onclick="generatePreview()">⚡ Generate Discharge Summary</button>
+    </div>
+
+  </aside>
+
+  <main class="preview-panel" id="previewPanel">
+    <div class="preview-toolbar">
+      <h2>Live Preview</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="generatePreview()">↻ Regenerate</button>
+        <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
+      </div>
+    </div>
+    <div id="previewContent">
+      <div class="preview-empty">
+        <svg width="60" height="60" viewBox="0 0 64 64" fill="none">
+          <rect x="8" y="4" width="40" height="52" rx="3" stroke="#8892A4" stroke-width="2"/>
+          <line x1="16" y1="16" x2="40" y2="16" stroke="#8892A4" stroke-width="2"/>
+          <line x1="16" y1="24" x2="40" y2="24" stroke="#8892A4" stroke-width="2"/>
+          <line x1="16" y1="32" x2="32" y2="32" stroke="#8892A4" stroke-width="2"/>
+          <circle cx="48" cy="48" r="12" fill="#E8ECF2" stroke="#8892A4" stroke-width="2"/>
+          <line x1="48" y1="43" x2="48" y2="53" stroke="#8892A4" stroke-width="2"/>
+          <line x1="43" y1="48" x2="53" y2="48" stroke="#8892A4" stroke-width="2"/>
+        </svg>
+        <p>Fill in the form, then click <strong>Generate Discharge Summary</strong>. Your printable document appears here.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const LOGO_SRC="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlN0YXRDaGFydC1TaW0gbG9nbyI+CiAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNDAiIHJ4PSI1MiIgZmlsbD0iIzFCMkE0QSIvPgogIDxyZWN0IHg9IjgiIHk9IjgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiByeD0iNTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U1MzgzYiIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPHJlY3QgeD0iNjIiIHk9IjU0IiB3aWR0aD0iMTMyIiBoZWlnaHQ9IjE2MCIgcng9IjE0IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOTgiIHk9IjQwIiB3aWR0aD0iNjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjOGVhMWI1Ii8+CiAgPHJlY3QgeD0iMTEyIiB5PSI0NiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjMUIyQTRBIi8+CiAgPHJlY3QgeD0iODAiIHk9Ijg0IiB3aWR0aD0iNzAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNjZGQ0ZTAiLz4KICA8cmVjdCB4PSI4MCIgeT0iMTAwIiB3aWR0aD0iNDgiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNjZGQ0ZTAiLz4KICA8cG9seWxpbmUgcG9pbnRzPSI3NCwxNDYgMTAwLDE0NiAxMTAsMTI4IDEyNCwxNzYgMTQwLDExMiAxNTAsMTQ2IDE4MiwxNDYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U1MzgzYiIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHJlY3QgeD0iODAiIHk9IjE5MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjY2RkNGUwIi8+Cjwvc3ZnPgo=";
+const ALL_MEDS=["Acetaminophen","Albuterol","Allopurinol","Alprazolam","Amiodarone","Amlodipine","Amoxicillin","Apixaban","Aspirin","Atenolol","Atorvastatin","Azithromycin","Baclofen","Bupropion","Carvedilol","Celecoxib","Cephalexin","Citalopram","Clonazepam","Clonidine","Clopidogrel","Cyclobenzaprine","Digoxin","Diltiazem","Donepezil","Duloxetine","Enalapril","Escitalopram","Famotidine","Fluoxetine","Furosemide","Gabapentin","Glipizide","Hydralazine","Hydrochlorothiazide","Hydrocodone/APAP","Ibuprofen","Insulin Glargine","Isosorbide Mononitrate","Levetiracetam","Levothyroxine","Lisinopril","Lithium","Lorazepam","Losartan","Meloxicam","Metformin","Methylprednisolone","Metoprolol Succinate","Montelukast","Naproxen","Nitroglycerin SL","Omeprazole","Ondansetron","Oxycodone/APAP","Pantoprazole","Paroxetine","Phenytoin","Potassium Chloride","Pravastatin","Prednisone","Quetiapine","Rivaroxaban","Sertraline","Spironolactone","Tamsulosin","Topiramate","Tramadol","Trazodone","Valsartan","Venlafaxine","Warfarin"];
+
+const MED_DB={
+"Acetaminophen":{str:"500 mg",route:"PO",freq:"q6h PRN pain/fever",base:500,unit:"mg"},
+"Albuterol":{str:"2.5 mg",route:"NEB",freq:"q4–6h PRN wheezing",base:2.5,unit:"mg"},
+"Allopurinol":{str:"300 mg",route:"PO",freq:"once daily",base:300,unit:"mg"},
+"Alprazolam":{str:"0.25 mg",route:"PO",freq:"TID PRN anxiety",base:0.25,unit:"mg"},
+"Amiodarone":{str:"200 mg",route:"PO",freq:"once daily",base:200,unit:"mg"},
+"Amlodipine":{str:"5 mg",route:"PO",freq:"once daily",base:5,unit:"mg"},
+"Amoxicillin":{str:"500 mg",route:"PO",freq:"TID × 10 days",base:500,unit:"mg"},
+"Apixaban":{str:"5 mg",route:"PO",freq:"BID",base:5,unit:"mg"},
+"Aspirin":{str:"81 mg",route:"PO",freq:"once daily",base:81,unit:"mg"},
+"Atenolol":{str:"50 mg",route:"PO",freq:"once daily",base:50,unit:"mg"},
+"Atorvastatin":{str:"40 mg",route:"PO",freq:"every evening",base:40,unit:"mg"},
+"Azithromycin":{str:"250 mg",route:"PO",freq:"once daily × 5 days",base:250,unit:"mg"},
+"Baclofen":{str:"10 mg",route:"PO",freq:"TID",base:10,unit:"mg"},
+"Bupropion":{str:"150 mg",route:"PO",freq:"BID",base:150,unit:"mg"},
+"Carvedilol":{str:"6.25 mg",route:"PO",freq:"BID with meals",base:6.25,unit:"mg"},
+"Celecoxib":{str:"200 mg",route:"PO",freq:"once daily",base:200,unit:"mg"},
+"Cephalexin":{str:"500 mg",route:"PO",freq:"QID × 7 days",base:500,unit:"mg"},
+"Citalopram":{str:"20 mg",route:"PO",freq:"once daily",base:20,unit:"mg"},
+"Clonazepam":{str:"0.5 mg",route:"PO",freq:"BID",base:0.5,unit:"mg"},
+"Clonidine":{str:"0.1 mg",route:"PO",freq:"BID",base:0.1,unit:"mg"},
+"Clopidogrel":{str:"75 mg",route:"PO",freq:"once daily",base:75,unit:"mg"},
+"Cyclobenzaprine":{str:"5 mg",route:"PO",freq:"TID PRN muscle spasm",base:5,unit:"mg"},
+"Digoxin":{str:"0.125 mg",route:"PO",freq:"once daily",base:0.125,unit:"mg"},
+"Diltiazem":{str:"120 mg",route:"PO",freq:"BID",base:120,unit:"mg"},
+"Donepezil":{str:"5 mg",route:"PO",freq:"every bedtime",base:5,unit:"mg"},
+"Duloxetine":{str:"30 mg",route:"PO",freq:"once daily",base:30,unit:"mg"},
+"Enalapril":{str:"5 mg",route:"PO",freq:"BID",base:5,unit:"mg"},
+"Escitalopram":{str:"10 mg",route:"PO",freq:"once daily",base:10,unit:"mg"},
+"Famotidine":{str:"20 mg",route:"PO",freq:"BID",base:20,unit:"mg"},
+"Fluoxetine":{str:"20 mg",route:"PO",freq:"once daily",base:20,unit:"mg"},
+"Furosemide":{str:"40 mg",route:"PO",freq:"once daily",base:40,unit:"mg"},
+"Gabapentin":{str:"300 mg",route:"PO",freq:"TID",base:300,unit:"mg"},
+"Glipizide":{str:"5 mg",route:"PO",freq:"once daily before breakfast",base:5,unit:"mg"},
+"Hydralazine":{str:"25 mg",route:"PO",freq:"TID",base:25,unit:"mg"},
+"Hydrochlorothiazide":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Hydrocodone/APAP":{str:"5/325 mg",route:"PO",freq:"q6h PRN pain",base:5,unit:"mg"},
+"Ibuprofen":{str:"400 mg",route:"PO",freq:"q6h PRN with food",base:400,unit:"mg"},
+"Insulin Glargine":{str:"10 units",route:"SQ",freq:"every bedtime",base:10,unit:"units"},
+"Isosorbide Mononitrate":{str:"30 mg",route:"PO",freq:"once daily (morning)",base:30,unit:"mg"},
+"Levetiracetam":{str:"500 mg",route:"PO",freq:"BID",base:500,unit:"mg"},
+"Levothyroxine":{str:"50 mcg",route:"PO",freq:"daily, empty stomach",base:50,unit:"mcg"},
+"Lisinopril":{str:"10 mg",route:"PO",freq:"once daily",base:10,unit:"mg"},
+"Lithium":{str:"300 mg",route:"PO",freq:"TID",base:300,unit:"mg"},
+"Lorazepam":{str:"0.5 mg",route:"PO",freq:"BID PRN anxiety",base:0.5,unit:"mg"},
+"Losartan":{str:"50 mg",route:"PO",freq:"once daily",base:50,unit:"mg"},
+"Meloxicam":{str:"15 mg",route:"PO",freq:"once daily with food",base:15,unit:"mg"},
+"Metformin":{str:"500 mg",route:"PO",freq:"BID with meals",base:500,unit:"mg"},
+"Methylprednisolone":{str:"4 mg",route:"PO",freq:"once daily",base:4,unit:"mg"},
+"Metoprolol Succinate":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Montelukast":{str:"10 mg",route:"PO",freq:"every bedtime",base:10,unit:"mg"},
+"Naproxen":{str:"250 mg",route:"PO",freq:"BID with food",base:250,unit:"mg"},
+"Nitroglycerin SL":{str:"0.4 mg",route:"SL",freq:"PRN chest pain (q5min × 3)",base:0.4,unit:"mg"},
+"Omeprazole":{str:"20 mg",route:"PO",freq:"once daily before meal",base:20,unit:"mg"},
+"Ondansetron":{str:"4 mg",route:"PO",freq:"q8h PRN nausea",base:4,unit:"mg"},
+"Oxycodone/APAP":{str:"5/325 mg",route:"PO",freq:"q6h PRN pain",base:5,unit:"mg"},
+"Pantoprazole":{str:"40 mg",route:"PO",freq:"daily before breakfast",base:40,unit:"mg"},
+"Paroxetine":{str:"20 mg",route:"PO",freq:"once daily",base:20,unit:"mg"},
+"Phenytoin":{str:"100 mg",route:"PO",freq:"TID",base:100,unit:"mg"},
+"Potassium Chloride":{str:"20 mEq",route:"PO",freq:"BID",base:20,unit:"mEq"},
+"Pravastatin":{str:"40 mg",route:"PO",freq:"every evening",base:40,unit:"mg"},
+"Prednisone":{str:"10 mg",route:"PO",freq:"once daily",base:10,unit:"mg"},
+"Quetiapine":{str:"25 mg",route:"PO",freq:"every bedtime PRN",base:25,unit:"mg"},
+"Rivaroxaban":{str:"20 mg",route:"PO",freq:"daily with evening meal",base:20,unit:"mg"},
+"Sertraline":{str:"50 mg",route:"PO",freq:"once daily",base:50,unit:"mg"},
+"Spironolactone":{str:"25 mg",route:"PO",freq:"once daily",base:25,unit:"mg"},
+"Tamsulosin":{str:"0.4 mg",route:"PO",freq:"every bedtime",base:0.4,unit:"mg"},
+"Topiramate":{str:"25 mg",route:"PO",freq:"BID",base:25,unit:"mg"},
+"Tramadol":{str:"50 mg",route:"PO",freq:"q6h PRN pain",base:50,unit:"mg"},
+"Trazodone":{str:"50 mg",route:"PO",freq:"every bedtime PRN",base:50,unit:"mg"},
+"Valsartan":{str:"80 mg",route:"PO",freq:"once daily",base:80,unit:"mg"},
+"Venlafaxine":{str:"75 mg",route:"PO",freq:"once daily",base:75,unit:"mg"},
+"Warfarin":{str:"5 mg",route:"PO",freq:"once daily (INR monitoring)",base:5,unit:"mg"}
+};
+
+const DIAG_DATA={
+"Acute Myocardial Infarction (AMI)":{
+ reason:"Acute onset substernal chest pressure with radiation to the left arm, diaphoresis, and dyspnea. ST-segment elevation on 12-lead ECG; troponin elevated.",
+ instructions:"Take all medications as prescribed. Do NOT stop aspirin or antiplatelet therapy without consulting cardiology. Avoid strenuous activity for 4–6 weeks. Follow a low-sodium, heart-healthy diet. Call 911 immediately if chest pain returns.",
+ newOrders:"Aspirin 81 mg PO daily; Metoprolol Succinate 25 mg PO daily; Atorvastatin 40 mg PO qHS; Clopidogrel 75 mg PO daily. Cardiac rehab referral placed.",
+ notes:"Tolerated PCI without complication. Echocardiogram obtained prior to discharge. Patient and family educated on cardiac warning signs.",
+ v:{WNL:{hr:[58,80],sbp:[108,128],dbp:[68,82],rr:[13,17],spo2:[97,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[82,105],sbp:[138,158],dbp:[84,96],rr:[18,22],spo2:[94,97],temp:[98.2,99.2],pain:[2,5]},Significant:{hr:[108,138],sbp:[158,190],dbp:[98,118],rr:[22,28],spo2:[88,93],temp:[98.4,100.2],pain:[5,9]}}},
+"Congestive Heart Failure (CHF) Exacerbation":{
+ reason:"Progressive dyspnea, bilateral lower-extremity edema, 3-pillow orthopnea, and 8 lb weight gain over 5 days.",
+ instructions:"Weigh yourself every morning; call your provider for a gain of >2 lb in a day or >5 lb in a week. Limit fluids to 2 L/day and sodium to 2 g/day. Elevate legs when seated. Take diuretics as prescribed.",
+ newOrders:"Furosemide 40 mg PO daily; Carvedilol 6.25 mg PO BID; Lisinopril 10 mg PO daily; Spironolactone 25 mg PO daily. Daily weight log provided.",
+ notes:"Diuresed appropriately; discharged 5 lb below admission weight. BMP stable. Supplemental oxygen discontinued prior to discharge.",
+ v:{WNL:{hr:[60,82],sbp:[110,130],dbp:[68,82],rr:[14,18],spo2:[95,98],temp:[97.6,98.8],pain:[0,2]},Mild:{hr:[82,100],sbp:[130,155],dbp:[80,95],rr:[18,24],spo2:[91,95],temp:[98.0,99.0],pain:[1,4]},Significant:{hr:[100,130],sbp:[155,185],dbp:[95,115],rr:[24,30],spo2:[84,91],temp:[98.2,99.8],pain:[3,7]}}},
+"Atrial Fibrillation with RVR":{
+ reason:"Palpitations, lightheadedness, and exertional dyspnea. 12-lead ECG: atrial fibrillation with rapid ventricular response. No acute ischemia.",
+ instructions:"Take rate-control and anticoagulation medications exactly as prescribed. Do NOT stop anticoagulants without consulting cardiology. Check your pulse daily. Avoid excess caffeine and alcohol. Report palpitations, chest pain, fainting, or any unusual bleeding/bruising.",
+ newOrders:"Metoprolol Succinate 25 mg PO daily; Diltiazem 120 mg PO BID; Apixaban 5 mg PO BID. Cardiology follow-up arranged.",
+ notes:"Ventricular rate controlled prior to discharge. Stroke risk (CHA₂DS₂-VASc) assessed and anticoagulation initiated. Patient educated on pulse monitoring.",
+ v:{WNL:{hr:[70,92],sbp:[110,130],dbp:[68,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[100,120],sbp:[118,140],dbp:[74,90],rr:[18,22],spo2:[94,97],temp:[98.0,99.0],pain:[1,4]},Significant:{hr:[120,165],sbp:[95,120],dbp:[60,82],rr:[20,26],spo2:[91,95],temp:[98.0,99.2],pain:[2,6]}}},
+"Hypertensive Emergency":{
+ reason:"Severely elevated blood pressure with headache and visual disturbance. Evaluated for end-organ involvement; BP lowered in a controlled manner.",
+ instructions:"Take all blood pressure medications every day — do not skip doses. Check and record your blood pressure at home. Follow a low-sodium diet and limit alcohol. Return immediately for severe headache, chest pain, vision changes, weakness, or trouble speaking.",
+ newOrders:"Amlodipine 5 mg PO daily; Lisinopril 10 mg PO daily; Hydrochlorothiazide 25 mg PO daily. Home BP log and PCP follow-up arranged.",
+ notes:"Blood pressure lowered gradually to avoid hypoperfusion. End-organ workup performed. Medication adherence and home monitoring reviewed.",
+ v:{WNL:{hr:[62,84],sbp:[128,142],dbp:[80,90],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,3]},Mild:{hr:[78,98],sbp:[150,175],dbp:[92,105],rr:[16,20],spo2:[94,97],temp:[98.0,99.0],pain:[2,5]},Significant:{hr:[85,110],sbp:[180,220],dbp:[110,130],rr:[18,24],spo2:[92,96],temp:[98.0,99.2],pain:[4,8]}}},
+"Community-Acquired Pneumonia (CAP)":{
+ reason:"Productive cough with purulent sputum, fever, pleuritic chest pain, and exertional dyspnea. CXR confirmed right lower lobe consolidation.",
+ instructions:"Complete the full antibiotic course even if you feel better. Rest and stay hydrated. Use the incentive spirometer 10×/hour while awake. Avoid smoke. Return to the ED if fever recurs above 38.5°C or breathing worsens.",
+ newOrders:"Azithromycin 250 mg PO daily × 5 days; Albuterol 2.5 mg NEB q4–6h PRN. Repeat CXR in 6–8 weeks. Pneumococcal/influenza vaccines offered.",
+ notes:"Sputum culture pending at discharge. Afebrile >24 hours and tolerating oral intake prior to discharge.",
+ v:{WNL:{hr:[65,85],sbp:[110,130],dbp:[68,82],rr:[14,18],spo2:[95,98],temp:[97.8,99.0],pain:[0,3]},Mild:{hr:[88,105],sbp:[108,128],dbp:[65,80],rr:[20,24],spo2:[92,95],temp:[99.5,101.0],pain:[2,5]},Significant:{hr:[108,130],sbp:[98,118],dbp:[58,72],rr:[24,32],spo2:[86,92],temp:[101.2,103.5],pain:[4,8]}}},
+"Asthma/COPD Exacerbation":{
+ reason:"Acute wheezing, dyspnea, and accessory muscle use. Peak flow 52% of personal best. Known severe persistent asthma.",
+ instructions:"Use your rescue inhaler as prescribed — not more than directed. Take controller medications daily even when well. Avoid triggers (smoke, dust, allergens). Follow your Asthma Action Plan. Go to the ED if 3 rescue doses give no relief.",
+ newOrders:"Albuterol 2.5 mg NEB q4–6h PRN; Prednisone 40 mg PO daily × 5 days; Montelukast 10 mg PO qHS.",
+ notes:"Responded to bronchodilators and corticosteroids. SpO₂ ≥95% on room air. Peak flow improved to 78% of personal best.",
+ v:{WNL:{hr:[65,85],sbp:[112,130],dbp:[68,82],rr:[14,18],spo2:[95,98],temp:[97.6,98.8],pain:[0,3]},Mild:{hr:[88,110],sbp:[118,138],dbp:[72,90],rr:[20,26],spo2:[91,95],temp:[98.2,99.5],pain:[2,5]},Significant:{hr:[112,138],sbp:[130,158],dbp:[85,102],rr:[28,36],spo2:[82,90],temp:[98.4,100.8],pain:[3,7]}}},
+"Pulmonary Embolism (PE)":{
+ reason:"Pleuritic chest pain, dyspnea, and tachycardia. CT pulmonary angiography confirmed segmental pulmonary embolism. Hemodynamically stable.",
+ instructions:"Take your anticoagulant exactly as prescribed for the full duration — do not miss doses. Watch for unusual bleeding or bruising. Avoid prolonged immobility; get up and walk regularly. Return immediately for worsening shortness of breath, chest pain, coughing up blood, or new leg swelling.",
+ newOrders:"Apixaban 5 mg PO BID (or Rivaroxaban 20 mg PO daily). Compression and mobility instructions provided. Hematology/PCP follow-up arranged.",
+ notes:"Low-risk PE appropriate for outpatient anticoagulation. Hemodynamically stable throughout admission. Patient educated on bleeding precautions.",
+ v:{WNL:{hr:[70,90],sbp:[110,128],dbp:[68,82],rr:[14,18],spo2:[95,98],temp:[97.8,98.8],pain:[1,3]},Mild:{hr:[92,110],sbp:[108,126],dbp:[66,80],rr:[20,24],spo2:[91,95],temp:[98.2,99.4],pain:[3,6]},Significant:{hr:[112,135],sbp:[92,112],dbp:[56,72],rr:[24,32],spo2:[85,92],temp:[98.2,99.6],pain:[4,8]}}},
+"Stroke (CVA/TIA)":{
+ reason:"Sudden right-sided facial droop, right arm weakness (4/5), and expressive aphasia. CT negative for hemorrhage; MRI confirmed left MCA ischemic stroke.",
+ instructions:"Take all prescribed medications as directed. Attend all rehabilitation appointments (PT/OT/speech). Monitor BP daily. Do not drive until cleared by neurology. Call 911 for any new FAST symptoms (Face, Arms, Speech, Time).",
+ newOrders:"Aspirin 81 mg PO daily; Clopidogrel 75 mg PO daily; Atorvastatin 40 mg PO qHS; Lisinopril 10 mg PO daily. Home health and outpatient rehab arranged.",
+ notes:"Outside tPA window. Dysphagia screen passed prior to discharge. Neurology and PT consulted.",
+ v:{WNL:{hr:[60,82],sbp:[130,148],dbp:[78,92],rr:[14,18],spo2:[95,98],temp:[97.8,98.8],pain:[0,3]},Mild:{hr:[82,105],sbp:[150,175],dbp:[90,108],rr:[18,22],spo2:[92,96],temp:[98.4,99.8],pain:[2,5]},Significant:{hr:[50,65],sbp:[175,215],dbp:[105,125],rr:[10,14],spo2:[88,93],temp:[98.8,101.2],pain:[3,7]}}},
+"Status Epilepticus / Seizure Disorder":{
+ reason:"Witnessed generalized tonic-clonic seizure >5 minutes with post-ictal confusion. History of epilepsy with recent medication non-compliance.",
+ instructions:"Take anti-epileptic medications EXACTLY as prescribed — do not skip doses. Do not drive until cleared by neurology. Avoid alcohol. Shower rather than bathe. Wear a medical-alert bracelet.",
+ newOrders:"Levetiracetam 500 mg PO BID; Phenytoin 100 mg PO TID. Neurology follow-up arranged. EEG results pending.",
+ notes:"Seizure terminated with IV benzodiazepine in the ED. Alert and oriented ×4 at discharge. Seizure precautions reviewed with family.",
+ v:{WNL:{hr:[62,82],sbp:[112,132],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[85,108],sbp:[138,160],dbp:[85,100],rr:[18,22],spo2:[93,96],temp:[98.4,99.5],pain:[2,5]},Significant:{hr:[108,140],sbp:[160,200],dbp:[98,120],rr:[22,28],spo2:[88,93],temp:[98.8,101.5],pain:[4,8]}}},
+"Traumatic Brain Injury (TBI)":{
+ reason:"Unrestrained driver in MVC. GCS 14 on arrival, brief LOC reported. CT head: left temporal contusion, no midline shift.",
+ instructions:"Rest is essential. Avoid screens, bright light, and exertion until cleared. Use acetaminophen only — NOT ibuprofen or aspirin — for headache. Return to the ED for worsening headache, repeated vomiting, seizures, or difficulty waking.",
+ newOrders:"Acetaminophen 500 mg PO q6h PRN headache; Ondansetron 4 mg PO q8h PRN nausea. Neurosurgery follow-up within 48 hours.",
+ notes:"C-spine cleared. Serial neuro checks stable. A reliable adult should remain with the patient for 24 hours.",
+ v:{WNL:{hr:[60,82],sbp:[110,130],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.6,98.8],pain:[1,4]},Mild:{hr:[55,70],sbp:[138,162],dbp:[82,100],rr:[12,16],spo2:[93,96],temp:[98.0,99.5],pain:[4,7]},Significant:{hr:[48,62],sbp:[165,200],dbp:[90,115],rr:[8,12],spo2:[88,93],temp:[98.2,101.5],pain:[6,9]}}},
+"Diabetic Ketoacidosis (DKA)":{
+ reason:"Hyperglycemia (BG 485 mg/dL), Kussmaul respirations, fruity breath odor, nausea/vomiting, and polydipsia ×3 days. Insulin therapy interrupted.",
+ instructions:"Check blood glucose before meals and at bedtime. Do NOT stop insulin without physician guidance. Maintain fluid intake. Watch for illness/infection triggers. Call 911 if BG >400 mg/dL with symptoms.",
+ newOrders:"Insulin Glargine 10 units SQ qHS; Metformin 500 mg PO BID; Potassium Chloride 20 mEq PO BID. Endocrinology and diabetes-educator referrals placed.",
+ notes:"Anion gap closed and electrolytes normalized prior to discharge. Tolerating oral intake.",
+ v:{WNL:{hr:[65,85],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[95,115],sbp:[100,120],dbp:[60,76],rr:[20,26],spo2:[94,97],temp:[98.4,99.8],pain:[3,6]},Significant:{hr:[118,140],sbp:[85,108],dbp:[50,65],rr:[26,36],spo2:[90,94],temp:[98.8,101.2],pain:[5,9]}}},
+"Hyperosmolar Hyperglycemic State (HHS)":{
+ reason:"Profound hyperglycemia with dehydration and altered mentation, minimal ketosis. Type 2 DM with intercurrent illness. Corrected gradually with fluids and insulin.",
+ instructions:"Check blood glucose regularly and stay well hydrated. Take diabetes medications and insulin as prescribed. Treat illnesses early and check glucose more often when sick. Watch for excessive thirst, confusion, or weakness. Call 911 for very high glucose with symptoms.",
+ newOrders:"Insulin Glargine 10 units SQ qHS; Metformin 500 mg PO BID; sick-day management plan provided. Endocrinology and diabetes-educator referrals placed.",
+ notes:"Serum osmolality and glucose corrected gradually. Mental status returned to baseline. Precipitating illness identified and addressed.",
+ v:{WNL:{hr:[68,88],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[98,118],sbp:[100,120],dbp:[60,76],rr:[18,22],spo2:[94,97],temp:[98.2,99.4],pain:[2,5]},Significant:{hr:[120,145],sbp:[85,105],dbp:[48,64],rr:[22,28],spo2:[91,95],temp:[98.4,100.0],pain:[3,7]}}},
+"Hypoglycemia":{
+ reason:"Diaphoresis, tremor, and confusion with low fingerstick glucose. Symptoms resolved promptly with dextrose. Likely related to insulin/oral hypoglycemic dosing.",
+ instructions:"Always carry a fast-acting sugar source (glucose tabs, juice). Do not skip meals. Check glucose before driving. Review your insulin or sulfonylurea dosing with your provider. Teach a family member how to use glucagon.",
+ newOrders:"Adjusted insulin/oral hypoglycemic regimen per endocrinology; glucagon emergency kit prescribed. Diabetes-educator follow-up arranged.",
+ notes:"Glucose normalized and patient tolerating oral intake at discharge. Medication regimen reviewed to reduce recurrence risk.",
+ v:{WNL:{hr:[64,84],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[97,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[88,108],sbp:[118,138],dbp:[74,90],rr:[16,20],spo2:[96,99],temp:[97.8,98.8],pain:[1,3]},Significant:{hr:[100,125],sbp:[120,145],dbp:[78,95],rr:[18,24],spo2:[95,98],temp:[97.6,98.8],pain:[2,5]}}},
+"Acute Kidney Injury (AKI)":{
+ reason:"Decreased urine output, fatigue, and a rising creatinine. Likely prerenal/acute tubular injury related to volume depletion and nephrotoxin exposure.",
+ instructions:"Stay hydrated unless you have been told to limit fluids. Avoid NSAIDs (ibuprofen, naproxen) and other nephrotoxic medications. Take medications at the renally adjusted doses provided. Watch for decreased urination, swelling, or confusion. Attend your follow-up lab draw.",
+ newOrders:"Hold nephrotoxic agents; renally dose all medications; repeat BMP in 3–5 days. Nephrology follow-up arranged.",
+ notes:"Creatinine trending downward at discharge. Volume status optimized. Offending agents identified and discontinued.",
+ v:{WNL:{hr:[62,84],sbp:[115,135],dbp:[72,86],rr:[14,18],spo2:[95,98],temp:[97.8,98.8],pain:[0,3]},Mild:{hr:[80,100],sbp:[135,158],dbp:[84,98],rr:[16,20],spo2:[93,96],temp:[98.0,99.2],pain:[2,5]},Significant:{hr:[95,120],sbp:[150,185],dbp:[92,112],rr:[20,26],spo2:[90,95],temp:[98.0,99.6],pain:[3,6]}}},
+"Hyperkalemia (ESRD / Dialysis)":{
+ reason:"End-stage renal disease patient who missed dialysis, presenting with weakness and peaked T-waves on ECG. Potassium elevated; treated and corrected.",
+ instructions:"Attend ALL scheduled dialysis sessions — do not miss treatments. Follow a low-potassium diet (limit bananas, oranges, potatoes, tomatoes). Take phosphate binders and prescribed medications. Return immediately for muscle weakness, palpitations, or a missed dialysis session.",
+ newOrders:"Resume dialysis schedule; potassium binder as directed; dietary potassium counseling. Nephrology follow-up arranged.",
+ notes:"Potassium corrected with treatment and dialysis; ECG normalized prior to discharge. Importance of dialysis adherence reinforced.",
+ v:{WNL:{hr:[60,82],sbp:[120,140],dbp:[74,88],rr:[14,18],spo2:[95,98],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[55,72],sbp:[130,155],dbp:[80,96],rr:[14,18],spo2:[93,96],temp:[97.8,98.8],pain:[1,4]},Significant:{hr:[42,58],sbp:[140,175],dbp:[85,105],rr:[16,22],spo2:[91,95],temp:[97.6,98.8],pain:[2,6]}}},
+"Renal Colic/Kidney Stone":{
+ reason:"Severe colicky right flank pain radiating to the groin, nausea, and hematuria. CT confirmed 6 mm right ureteral calculus.",
+ instructions:"Drink 2–3 L of water daily to help pass the stone. Strain your urine and save any stone for analysis. Take pain medication as prescribed. Limit sodium, animal protein, and oxalate-rich foods. Follow up with urology within 1 week.",
+ newOrders:"Tamsulosin 0.4 mg PO qHS (medical expulsive therapy); Ibuprofen 400 mg PO q6h PRN with food; Ondansetron 4 mg PO q8h PRN nausea.",
+ notes:"Stone <10 mm — observation with medical expulsive therapy appropriate. Urology referral placed.",
+ v:{WNL:{hr:[65,85],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[1,3]},Mild:{hr:[88,108],sbp:[130,150],dbp:[82,98],rr:[18,22],spo2:[95,98],temp:[98.2,99.8],pain:[4,7]},Significant:{hr:[108,132],sbp:[148,175],dbp:[92,112],rr:[22,26],spo2:[95,98],temp:[98.5,100.5],pain:[7,10]}}},
+"Pyelonephritis / Complicated UTI":{
+ reason:"Fever, flank pain, dysuria, and costovertebral angle tenderness. Urinalysis and culture consistent with upper urinary tract infection.",
+ instructions:"Complete the full antibiotic course even after symptoms improve. Drink plenty of fluids. Take fever/pain medication as needed. Return for persistent or recurring fever, vomiting that prevents you from keeping medications down, or worsening flank pain.",
+ newOrders:"Cephalexin 500 mg PO QID × 10–14 days; Ondansetron 4 mg PO q8h PRN nausea. Urine culture pending; urology/PCP follow-up arranged.",
+ notes:"Afebrile and tolerating oral antibiotics prior to discharge. Culture sensitivities pending — regimen to be adjusted if needed.",
+ v:{WNL:{hr:[68,88],sbp:[112,130],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.8,99.0],pain:[1,3]},Mild:{hr:[92,110],sbp:[108,128],dbp:[66,80],rr:[18,22],spo2:[94,97],temp:[99.8,101.2],pain:[3,6]},Significant:{hr:[110,132],sbp:[95,115],dbp:[58,72],rr:[22,28],spo2:[92,96],temp:[101.5,103.5],pain:[5,8]}}},
+"Acute Urinary Retention":{
+ reason:"Inability to void with painful suprapubic distension. Bladder catheterization yielded a large residual volume. Likely related to benign prostatic hyperplasia.",
+ instructions:"If discharged with a catheter, follow the catheter-care instructions provided and keep the drainage bag below bladder level. Avoid antihistamines, decongestants, and anticholinergic medications. Take your alpha-blocker as prescribed. Follow up with urology for a voiding trial.",
+ newOrders:"Tamsulosin 0.4 mg PO qHS; catheter-care instructions provided. Urology follow-up and voiding trial arranged.",
+ notes:"Bladder decompressed with significant residual volume returned. Catheter placed for outpatient voiding trial. Urology coordinating follow-up.",
+ v:{WNL:{hr:[66,86],sbp:[112,132],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[1,3]},Mild:{hr:[84,104],sbp:[130,152],dbp:[82,96],rr:[16,20],spo2:[95,98],temp:[97.8,99.0],pain:[4,7]},Significant:{hr:[100,124],sbp:[150,180],dbp:[90,108],rr:[18,24],spo2:[95,98],temp:[98.0,99.4],pain:[6,9]}}},
+"Gastrointestinal (GI) Hemorrhage":{
+ reason:"Melena and lightheadedness with a drop in hemoglobin. Upper endoscopy performed; bleeding source identified and treated.",
+ instructions:"Take your acid-suppressing medication as prescribed. Avoid NSAIDs, aspirin, and alcohol unless your provider specifically approves them. Eat small, bland meals. Return immediately for black or bloody stools, vomiting blood, dizziness, or fainting.",
+ newOrders:"Pantoprazole 40 mg PO daily; hold anticoagulants/antiplatelets per GI; repeat hemoglobin check arranged. GI follow-up scheduled.",
+ notes:"Bleeding controlled endoscopically. Hemoglobin stable for >24 hours prior to discharge. Anticoagulation plan coordinated with GI.",
+ v:{WNL:{hr:[68,88],sbp:[110,128],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.6,98.6],pain:[0,3]},Mild:{hr:[95,115],sbp:[100,118],dbp:[60,74],rr:[18,22],spo2:[94,97],temp:[97.8,98.8],pain:[2,5]},Significant:{hr:[115,140],sbp:[78,100],dbp:[44,62],rr:[22,28],spo2:[92,96],temp:[97.6,98.6],pain:[3,7]}}},
+"Acute Pancreatitis":{
+ reason:"Severe epigastric pain radiating to the back with nausea and vomiting. Lipase markedly elevated. Managed with bowel rest, fluids, and analgesia.",
+ instructions:"Avoid alcohol completely. Follow a low-fat diet and advance slowly as tolerated. Stay well hydrated. Take medications as prescribed. Return for severe abdominal pain, persistent vomiting, fever, or inability to keep fluids down.",
+ newOrders:"Ondansetron 4 mg PO q8h PRN nausea; scheduled analgesia; low-fat diet instructions. GI follow-up and alcohol-cessation referral arranged.",
+ notes:"Tolerating a low-fat diet prior to discharge. Lipase trending down. Precipitant addressed and cessation counseling provided.",
+ v:{WNL:{hr:[70,90],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,99.0],pain:[2,4]},Mild:{hr:[92,112],sbp:[108,128],dbp:[66,82],rr:[18,22],spo2:[94,97],temp:[99.5,100.8],pain:[4,7]},Significant:{hr:[112,135],sbp:[95,115],dbp:[58,74],rr:[22,28],spo2:[91,95],temp:[100.5,102.5],pain:[6,9]}}},
+"Small Bowel Obstruction":{
+ reason:"Crampy abdominal pain, distension, vomiting, and obstipation. Imaging consistent with small bowel obstruction; managed conservatively with bowel rest and decompression.",
+ instructions:"Advance your diet slowly as instructed. Stay hydrated with small frequent sips. Walk regularly to help bowel function. Return immediately for vomiting, inability to pass gas or stool, or worsening abdominal distension or pain.",
+ newOrders:"Ondansetron 4 mg PO q8h PRN nausea; staged diet advancement. General surgery follow-up arranged.",
+ notes:"Obstruction resolved with conservative management and NG decompression. Passing flatus and tolerating oral intake prior to discharge.",
+ v:{WNL:{hr:[68,88],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[2,4]},Mild:{hr:[90,108],sbp:[108,126],dbp:[66,80],rr:[18,22],spo2:[95,98],temp:[98.2,99.6],pain:[4,7]},Significant:{hr:[108,130],sbp:[98,118],dbp:[60,76],rr:[20,26],spo2:[93,96],temp:[98.8,100.8],pain:[6,9]}}},
+"Sepsis":{
+ reason:"Fever, tachycardia, hypotension, and altered mentation. Blood/urine cultures positive for E. coli. Sepsis secondary to urinary tract infection.",
+ instructions:"Complete the full antibiotic course. Monitor temperature daily and stay hydrated. Watch for returning infection: fever, confusion, decreased urine output, or worsening fatigue. Call 911 for rapid deterioration.",
+ newOrders:"Cephalexin 500 mg PO QID × 14 days; Ondansetron 4 mg PO q8h PRN. Daily weight and temperature log provided.",
+ notes:"Lactate normalized after fluid resuscitation. BP stabilized without vasopressors. Source identified and treated.",
+ v:{WNL:{hr:[65,88],sbp:[108,128],dbp:[65,80],rr:[14,18],spo2:[95,98],temp:[97.8,99.0],pain:[0,3]},Mild:{hr:[95,115],sbp:[98,118],dbp:[58,72],rr:[20,26],spo2:[92,96],temp:[99.8,101.5],pain:[3,6]},Significant:{hr:[118,145],sbp:[78,98],dbp:[42,62],rr:[26,36],spo2:[86,92],temp:[101.5,104.5],pain:[4,8]}}},
+"Cellulitis / Skin & Soft Tissue Infection":{
+ reason:"Erythema, warmth, and swelling of the lower extremity with low-grade fever. Borders marked; responded to antibiotics with regressing erythema.",
+ instructions:"Complete the full antibiotic course. Elevate the affected limb to reduce swelling. Keep the area clean and watch the marked borders. Return for spreading redness beyond the marked line, fever, red streaking, or increasing pain.",
+ newOrders:"Cephalexin 500 mg PO QID × 7 days; wound care and limb elevation instructions. PCP follow-up arranged.",
+ notes:"Erythema regressing within marked margins. Afebrile prior to discharge. No abscess requiring drainage.",
+ v:{WNL:{hr:[68,88],sbp:[112,130],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.8,99.0],pain:[1,3]},Mild:{hr:[88,106],sbp:[112,132],dbp:[68,84],rr:[16,20],spo2:[95,98],temp:[99.5,100.8],pain:[3,6]},Significant:{hr:[105,128],sbp:[100,120],dbp:[60,76],rr:[20,26],spo2:[93,97],temp:[101.0,103.0],pain:[4,7]}}},
+"Acute Agitation / Psychiatric Crisis":{
+ reason:"Acute agitation and disorganized thinking. Medically cleared; evaluated by psychiatry. Calm and cooperative prior to discharge.",
+ instructions:"Take your prescribed medications as directed. Attend all scheduled follow-up appointments. Keep your crisis plan and support contacts easily accessible. Avoid alcohol and non-prescribed substances. Reach out to your support network and providers if symptoms return.",
+ newOrders:"Resume/adjust psychiatric medications per psychiatry; outpatient behavioral health follow-up arranged; crisis resources and safety plan provided.",
+ notes:"Medically cleared with normal vital signs. Calm and cooperative at discharge. Safety plan reviewed with patient and support person.",
+ v:{WNL:{hr:[68,88],sbp:[114,132],dbp:[70,84],rr:[14,18],spo2:[97,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[90,110],sbp:[130,150],dbp:[80,94],rr:[16,22],spo2:[96,99],temp:[97.8,98.8],pain:[0,3]},Significant:{hr:[105,130],sbp:[140,168],dbp:[86,102],rr:[18,24],spo2:[95,98],temp:[97.8,99.0],pain:[0,4]}}},
+"Alcohol Withdrawal":{
+ reason:"Tremor, anxiety, and tachycardia in the setting of recent cessation of heavy alcohol use. Monitored on a symptom-triggered (CIWA) protocol.",
+ instructions:"Take all prescribed medications, including thiamine and vitamins. Do not resume alcohol use. Stay hydrated and eat regularly. Attend follow-up and recommended support programs. Return immediately for severe tremor, confusion, hallucinations, or seizures.",
+ newOrders:"Thiamine 100 mg PO daily; folic acid and multivitamin; tapering benzodiazepine per protocol. Substance-use counseling referral arranged.",
+ notes:"CIWA scores trending down; vital signs stabilized prior to discharge. Referral placed to outpatient substance-use services.",
+ v:{WNL:{hr:[70,90],sbp:[118,135],dbp:[72,86],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,3]},Mild:{hr:[95,115],sbp:[138,158],dbp:[84,98],rr:[18,22],spo2:[95,98],temp:[98.4,99.6],pain:[2,5]},Significant:{hr:[115,140],sbp:[155,185],dbp:[95,112],rr:[20,28],spo2:[94,97],temp:[99.0,101.0],pain:[3,7]}}},
+"Intentional Overdose (Post-Stabilization)":{
+ reason:"Presented following an intentional ingestion. Medically stabilized and cleared; evaluated by psychiatry prior to discharge.",
+ instructions:"Take your medications exactly as prescribed. Attend all follow-up appointments. Keep crisis resources and support contacts within easy reach. Lean on trusted people in your support network. Avoid alcohol and any non-prescribed substances.",
+ newOrders:"Psychiatric follow-up arranged; outpatient mental health referral; medication reconciliation completed; crisis resources and safety plan provided.",
+ notes:"Medically cleared with laboratory values and vital signs normalized. Discharged to outpatient mental health follow-up with a documented safety plan and support person.",
+ v:{WNL:{hr:[64,86],sbp:[110,128],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[0,2]},Mild:{hr:[58,98],sbp:[105,135],dbp:[64,88],rr:[12,20],spo2:[94,98],temp:[97.6,98.8],pain:[0,3]},Significant:{hr:[50,110],sbp:[95,140],dbp:[58,90],rr:[10,22],spo2:[92,97],temp:[97.4,99.0],pain:[0,4]}}},
+"Neutropenic Fever":{
+ reason:"Fever during chemotherapy in the setting of neutropenia. Broad-spectrum antibiotics initiated. Source workup performed.",
+ instructions:"Check your temperature regularly. Avoid crowds and contact with sick individuals. Practice strict hand hygiene. Complete all antibiotics. Return IMMEDIATELY for any fever ≥100.4°F (38°C), chills, or new symptoms — do not wait.",
+ newOrders:"Continue broad-spectrum antibiotics as directed; neutropenic precautions reinforced. Oncology follow-up arranged with repeat CBC.",
+ notes:"Cultures pending. Afebrile with recovering absolute neutrophil count prior to discharge. Neutropenic precautions reviewed with patient and family.",
+ v:{WNL:{hr:[70,90],sbp:[110,128],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.8,99.0],pain:[0,3]},Mild:{hr:[92,110],sbp:[105,125],dbp:[64,80],rr:[18,22],spo2:[94,97],temp:[100.4,101.8],pain:[2,5]},Significant:{hr:[112,135],sbp:[92,112],dbp:[56,72],rr:[22,28],spo2:[91,96],temp:[102.0,104.0],pain:[3,7]}}},
+"Cancer-Related Pain Crisis":{
+ reason:"Uncontrolled cancer-related pain. Pain regimen adjusted with palliative care involvement; pain reduced to an acceptable level.",
+ instructions:"Take your long-acting pain medication on schedule, even when comfortable. Use breakthrough doses as directed. Prevent constipation by taking your bowel regimen daily. Contact palliative care promptly for pain that is not controlled by your current regimen.",
+ newOrders:"Long-acting opioid with breakthrough dosing per palliative care; scheduled bowel regimen (stool softener + stimulant laxative); Ondansetron PRN. Palliative care follow-up arranged.",
+ notes:"Pain improved to a patient-acceptable level prior to discharge. Palliative care coordinating outpatient management and titration.",
+ v:{WNL:{hr:[68,88],sbp:[110,130],dbp:[68,82],rr:[14,18],spo2:[96,99],temp:[97.6,98.8],pain:[2,4]},Mild:{hr:[84,104],sbp:[118,140],dbp:[74,90],rr:[16,22],spo2:[95,98],temp:[97.8,98.8],pain:[5,7]},Significant:{hr:[100,124],sbp:[125,155],dbp:[80,98],rr:[18,26],spo2:[94,97],temp:[97.8,99.0],pain:[8,10]}}},
+"Post-Bariatric Surgery Complication":{
+ reason:"Recent bariatric surgery patient with nausea, vomiting, poor oral tolerance, and dehydration. Evaluated for obstruction/leak; managed supportively.",
+ instructions:"Follow your staged bariatric diet exactly. Take small, frequent sips of fluid. Take your prescribed vitamins and mineral supplements daily. Chew thoroughly and eat slowly. Return immediately for persistent vomiting, severe abdominal pain, fever, or inability to keep fluids down.",
+ newOrders:"Ondansetron 4 mg PO q8h PRN nausea; oral rehydration plan; bariatric vitamin/mineral supplementation. Bariatric surgery follow-up arranged.",
+ notes:"Tolerating oral fluids prior to discharge. Workup negative for anastomotic leak or obstruction. Dietitian reinforced staged diet progression.",
+ v:{WNL:{hr:[70,90],sbp:[112,130],dbp:[70,84],rr:[14,18],spo2:[96,99],temp:[97.8,98.8],pain:[1,3]},Mild:{hr:[92,112],sbp:[105,125],dbp:[64,80],rr:[16,20],spo2:[95,98],temp:[98.2,99.6],pain:[3,6]},Significant:{hr:[110,132],sbp:[92,114],dbp:[56,74],rr:[18,24],spo2:[93,96],temp:[98.8,100.8],pain:[5,8]}}}
+};
+
+// Ordered list of all diagnosis keys (insertion order)
+const ALL_DIAGNOSES=Object.keys(DIAG_DATA);
+
+// Clinic -> diagnoses mapping. Emergency Room links to all.
+const CLINIC_DIAGNOSES={
+"Cardiology Clinic":["Acute Myocardial Infarction (AMI)","Congestive Heart Failure (CHF) Exacerbation","Atrial Fibrillation with RVR","Hypertensive Emergency"],
+"Pulmonology / Respiratory Clinic":["Community-Acquired Pneumonia (CAP)","Asthma/COPD Exacerbation","Pulmonary Embolism (PE)"],
+"Neurology / Stroke Clinic":["Stroke (CVA/TIA)","Status Epilepticus / Seizure Disorder","Traumatic Brain Injury (TBI)"],
+"Endocrinology / Diabetes Clinic":["Diabetic Ketoacidosis (DKA)","Hyperosmolar Hyperglycemic State (HHS)","Hypoglycemia"],
+"Nephrology Clinic":["Acute Kidney Injury (AKI)","Hyperkalemia (ESRD / Dialysis)"],
+"Urology Clinic":["Renal Colic/Kidney Stone","Pyelonephritis / Complicated UTI","Acute Urinary Retention"],
+"Gastroenterology Clinic":["Gastrointestinal (GI) Hemorrhage","Acute Pancreatitis","Small Bowel Obstruction"],
+"Infectious Disease Clinic":["Sepsis","Cellulitis / Skin & Soft Tissue Infection"],
+"Behavioral Health Clinic":["Acute Agitation / Psychiatric Crisis","Alcohol Withdrawal","Intentional Overdose (Post-Stabilization)"],
+"Oncology Clinic":["Neutropenic Fever","Cancer-Related Pain Crisis"],
+"Bariatric / Metabolic Clinic":["Post-Bariatric Surgery Complication"],
+"Emergency Room":ALL_DIAGNOSES
+};
+
+// utils
+const rndInt=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const rndF=(a,b,d)=>parseFloat((Math.random()*(b-a)+a).toFixed(d));
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function fmtDate(s){if(!s)return'';const[y,m,d]=s.split('-');const M=['January','February','March','April','May','June','July','August','September','October','November','December'];return`${M[+m-1]} ${+d}, ${y}`}
+function calcAge(){const dob=document.getElementById('dob').value,el=document.getElementById('ageDisplay');if(!dob){el.value='';return}const t=new Date(),b=new Date(dob);let a=t.getFullYear()-b.getFullYear();const m=t.getMonth()-b.getMonth();if(m<0||(m===0&&t.getDate()<b.getDate()))a--;el.value=a+' yrs'}
+function inToFt(i){if(!i)return'';return`${Math.floor(i/12)}'${Math.round(i%12)}"`}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// med grid
+function buildMedGrid(){const g=document.getElementById('medGrid');g.innerHTML='';ALL_MEDS.forEach(m=>{const l=document.createElement('label');l.className='med-item';l.dataset.med=m;l.innerHTML=`<input type="checkbox" value="${esc(m)}" onchange="onMedChange()"><span>${esc(m)}</span>`;g.appendChild(l)})}
+function filterMeds(){const q=document.getElementById('medSearch').value.toLowerCase();document.querySelectorAll('.med-item').forEach(el=>{el.style.display=el.dataset.med.toLowerCase().includes(q)?'flex':'none'})}
+function getTargetMeds(){return[...document.querySelectorAll('.med-item input:checked')].map(c=>c.value)}
+function onMedChange(){const c=getTargetMeds(),n=c.length,el=document.getElementById('medCount');el.innerHTML=n>5?`<span class="count-warn">⚠ Max 5 — please deselect one</span>`:`<span class="count-num">${n}</span> of 5 target meds selected`;document.querySelectorAll('.med-item').forEach(it=>{const cb=it.querySelector('input');it.classList.toggle('is-target',cb.checked);cb.disabled=(n>=5&&!cb.checked)});updatePreview()}
+
+// vitals
+function generateVitals(){const dg=document.getElementById('diagnosis').value,p=document.getElementById('vitalsProfile').value;if(!dg||!p)return;const dd=DIAG_DATA[dg];if(!dd)return;const r=dd.v[p];document.getElementById('vHR').value=rndInt(r.hr[0],r.hr[1]);document.getElementById('vBP').value=`${rndInt(r.sbp[0],r.sbp[1])}/${rndInt(r.dbp[0],r.dbp[1])}`;document.getElementById('vRR').value=rndInt(r.rr[0],r.rr[1]);document.getElementById('vSPO2').value=rndInt(r.spo2[0],r.spo2[1])+'%';document.getElementById('vTemp').value=rndF(r.temp[0],r.temp[1],1)+'°F';document.getElementById('vPain').value=rndInt(r.pain[0],r.pain[1])+'/10';updatePreview()}
+function populateDiagnoses(){
+ const clinic=document.getElementById('clinic').value,sel=document.getElementById('diagnosis');
+ if(!clinic){sel.innerHTML='<option value="">— Select a clinic first —</option>';sel.disabled=true;return}
+ const list=clinic==='Emergency Room'?ALL_DIAGNOSES:(CLINIC_DIAGNOSES[clinic]||[]);
+ sel.disabled=false;
+ sel.innerHTML='<option value="">— Select diagnosis —</option>'+list.map(d=>`<option>${d}</option>`).join('');
+}
+function onClinicChange(){populateDiagnoses();onDiagnosisChange();updatePreview()}
+function onDiagnosisChange(){if(document.getElementById('vitalsProfile').value)generateVitals()}
+
+// med error
+function applyMedError(name,lvl){const db=MED_DB[name];if(!db)return{doseStr:'(dose unlisted)',route:'',freq:'',errored:false};const rate=lvl==='subtle'?0.10:lvl==='chaos'?0.30:0;const err=Math.random()<rate;let ds=db.str;if(err){const mult=[1.5,2.0,0.5,3.0][Math.floor(Math.random()*4)];let v=db.base*mult,f;if(['mcg','mEq','units'].includes(db.unit))f=Math.round(v)+' '+db.unit;else if(v<1)f=parseFloat(v.toFixed(3))+' '+db.unit;else if(v>=100)f=Math.round(v)+' '+db.unit;else f=parseFloat(v.toFixed(2)).toString()+' '+db.unit;ds=f}return{doseStr:ds,route:db.route,freq:db.freq,errored:err}}
+
+function buildMedList(target,noise,errLvl){let fin=[...target];if(noise!=='none'){const pool=shuffle(ALL_MEDS.filter(m=>!target.includes(m)));const n=noise==='moderate'?rndInt(5,10):rndInt(10,25);fin=[...fin,...pool.slice(0,n)]}const noiseMeds=fin.slice(target.length).sort();fin=[...target,...noiseMeds];return fin.map(m=>{const isT=target.includes(m);return{name:m,isTarget:isT,...applyMedError(m,isT?errLvl:'none')}})}
+
+// preview
+function updatePreview(){if(document.getElementById('previewContent').querySelector('.discharge-doc'))generatePreview()}
+
+function generatePreview(){
+ const g=id=>document.getElementById(id).value;
+ const patientName=g('patientName')||'(Patient name not set)';
+ const ageDisplay=g('ageDisplay'),gender=g('gender');
+ const provider=g('provider')||'—',clinic=g('clinic')||'—';
+ const diagnosis=g('diagnosis'),acuity=g('acuity');
+ const weight=g('weight'),height=g('height');
+ const hr=g('vHR')||'—',bp=g('vBP')||'—',rr=g('vRR')||'—',spo2=g('vSPO2')||'—',temp=g('vTemp')||'—',pain=g('vPain')||'—';
+ const scenarioName=g('scenarioName');
+ const errLvl=document.querySelector('input[name=medError]:checked')?.value||'none';
+ const noise=g('medNoise'),target=getTargetMeds();
+ const allergies=[...document.querySelectorAll('#allergyGroup input:checked')].map(c=>c.value);
+ const allergyStr=allergies.length?allergies.join(', '):'No Known Drug Allergies (NKDA)';
+ const fuMap={'7days':'Follow-up scheduled within 7 days. See attached appointment card.','30days':'Follow-up scheduled within 30 days. Contact clinic to confirm time.','pcp':'No follow-up scheduled — patient advised to contact PCP/specialist to arrange.'};
+ const followupText=fuMap[g('followup')]||'—';
+ const acuityMap={good:'Stable / Good — ambulatory and independent at discharge.',fair:'Stable / Fair — requires assistance with mobility and ADLs.',guarded:'Guarded — high risk for re-admission; caregiver educated.',unchanged:'Unchanged — awaiting further diagnostics; close monitoring required.'};
+ const acuityText=acuityMap[acuity]||'';
+ const dd=DIAG_DATA[diagnosis]||{};
+ const reason=dd.reason||'—',instructions=dd.instructions||'—',newOrders=dd.newOrders||'—';
+ let notes=dd.notes||'';if(acuityText)notes=(notes?notes+' ':'')+acuityText;if(!notes)notes='—';
+ const visitDate=fmtDate(g('dischargeDate'))||'—';
+ const dobF=fmtDate(g('dob'))||'—';
+ const htD=height?`${height}" (${inToFt(+height)})`:'—',wtD=weight?`${weight} lbs`:'—';
+ const meds=buildMedList(target,noise,errLvl);
+
+ let medRows=meds.length?meds.map((m,i)=>`<tr class="${m.isTarget?'target-row':''}"><td class="num">${i+1}</td><td class="name">${esc(m.name)}</td><td>${esc(m.doseStr)} ${esc(m.route)}${m.errored?' <span style="color:#c0392b;font-weight:700" class="screen-flag">⚠ DOSE ERROR</span>':''}</td><td>${esc(m.freq)}</td></tr>`).join(''):`<tr><td colspan="4" style="text-align:center;color:#888;padding:14px">No medications selected.</td></tr>`;
+
+ const html=`
+ ${scenarioName?`<div class="scenario-badge">SCENARIO: ${esc(scenarioName)}</div>`:''}
+ <div class="discharge-doc">
+   <div class="doc-header">
+     <div>
+       <div class="doc-title">After Visit Summary</div>
+       <div class="doc-patient-info">
+         <b>Patient Name:</b> ${esc(patientName)}<br>
+         <b>DOB:</b> ${dobF} &nbsp;&nbsp; <b>Age:</b> ${ageDisplay||'—'}${gender?' &nbsp;&nbsp; <b>Sex:</b> '+esc(gender):''}<br>
+         <b>Visit Date:</b> ${visitDate}<br>
+         <b>Clinic:</b> ${esc(clinic)}
+       </div>
+     </div>
+     <img class="doc-logo" src="${LOGO_SRC}" alt="StatChart-Sim logo">
+   </div>
+
+   <div class="doc-section-head">Today's Visit</div>
+   <hr class="doc-divider">
+
+   <div class="doc-body">
+     <div class="doc-left">
+       <span class="doc-field-label">Provider:</span>
+       <div class="doc-field-value">${esc(provider)}</div>
+       <span class="doc-field-label">Reason For Visit:</span>
+       <div class="doc-field-value">${esc(reason)}</div>
+       <span class="doc-field-label">Diagnosis:</span>
+       <div class="doc-field-value">${esc(diagnosis||'—')}</div>
+     </div>
+     <div class="doc-right">
+       <span class="vitals-label">Vitals:</span>
+       <table class="vitals-table">
+         <tr><td>HR:</td><td>${esc(hr)}</td><td>Temp:</td><td>${esc(temp)}</td></tr>
+         <tr><td>B/P:</td><td>${esc(bp)}</td><td>Ht:</td><td>${esc(htD)}</td></tr>
+         <tr><td>RR:</td><td>${esc(rr)}</td><td>Wt:</td><td>${esc(wtD)}</td></tr>
+         <tr><td>SpO₂:</td><td>${esc(spo2)}</td><td>Pain:</td><td>${esc(pain)}</td></tr>
+       </table>
+     </div>
+   </div>
+
+   <hr class="doc-full-divider">
+   <span class="doc-full-label">Instructions:</span>
+   <div class="doc-full-value">${esc(instructions)}</div>
+
+   <hr class="doc-full-divider">
+   <span class="doc-full-label">What's Next:</span>
+   <div class="doc-full-value">${esc(followupText)}</div>
+
+   <hr class="doc-full-divider">
+   <span class="doc-full-label">New Orders From This Visit:</span>
+   <div class="doc-full-value">${esc(newOrders)}</div>
+
+   <hr class="doc-full-divider">
+   <span class="doc-full-label">Important Notes:</span>
+   <div class="doc-full-value">${esc(notes)}</div>
+   <div class="doc-full-value"><b>Allergies:</b> ${esc(allergyStr)}</div>
+   <hr class="doc-full-divider">
+
+   <div class="doc-footer">StatChart-Sim — Simulation Document · NOT a real medical record · For training use only</div>
+
+   <div class="doc-page-break">
+     <div class="doc-med-title">Medications</div>
+     <div class="doc-med-sub">${meds.length} medication(s) · ${target.length} target/anchor · ${noise==='none'?'no':noise} background noise${errLvl!=='none'?' · '+errLvl+' error mode':''}</div>
+     <table class="med-table">
+       <thead><tr><th></th><th>Medication</th><th>Dose / Route</th><th>Frequency</th></tr></thead>
+       <tbody>${medRows}</tbody>
+     </table>
+     <div class="doc-footer" style="margin-top:18px">StatChart-Sim — Simulation Document · NOT a real medical record · For training use only</div>
+   </div>
+ </div>`;
+ document.getElementById('previewContent').innerHTML=html;
+}
+
+function resetForm(){if(!confirm('Clear all fields and start over?'))return;document.querySelectorAll('input[type=text],input[type=date],input[type=number]').forEach(i=>i.value='');document.querySelectorAll('select').forEach(s=>s.selectedIndex=0);document.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=false;c.disabled=false});document.querySelector('input[name=medError][value=none]').checked=true;document.querySelectorAll('.med-item').forEach(i=>i.classList.remove('is-target'));document.getElementById('ageDisplay').value='';populateDiagnoses();document.getElementById('medCount').innerHTML='<span class="count-num">0</span> of 5 target meds selected';document.getElementById('previewContent').innerHTML='<div class="preview-empty"><svg width="60" height="60" viewBox="0 0 64 64" fill="none"><rect x="8" y="4" width="40" height="52" rx="3" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="16" x2="40" y2="16" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="24" x2="40" y2="24" stroke="#8892A4" stroke-width="2"/><line x1="16" y1="32" x2="32" y2="32" stroke="#8892A4" stroke-width="2"/><circle cx="48" cy="48" r="12" fill="#E8ECF2" stroke="#8892A4" stroke-width="2"/><line x1="48" y1="43" x2="48" y2="53" stroke="#8892A4" stroke-width="2"/><line x1="43" y1="48" x2="53" y2="48" stroke="#8892A4" stroke-width="2"/></svg><p>Fill in the form, then click <strong>Generate Discharge Summary</strong>. Your printable document appears here.</p></div>'}
+
+// hide error flags on print
+const ps=document.createElement('style');ps.textContent='@media print{.screen-flag{display:none!important}}';document.head.appendChild(ps);
+
+document.getElementById("headerLogo").src=LOGO_SRC;
+buildMedGrid();
+populateDiagnoses();
+</script>
+</body>
+</html>

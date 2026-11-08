@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scenario Builder — EMS Sim Lab</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .stage-vitals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; }
+  .stage-vitals label { font-size: .68rem; }
+  .paper .vitals td { font-family: var(--mono); text-align: center; }
+  .paper .vitals td:first-child { font-family: var(--font); text-align: left; font-weight: 600; }
+  .paper .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #999; margin-top: 8px; }
+  .paper .meta-grid div { padding: 5px 7px; border-right: 1px solid #ccc; }
+  .paper .meta-grid div:last-child { border-right: 0; }
+  .paper .meta-grid small { display: block; font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: .05em; }
+  .paper .stage { border: 1px solid #999; margin-bottom: 8px; }
+  .paper .stage-head { background: #eef1f4; padding: 5px 8px; font-weight: 700; display: flex; justify-content: space-between; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper .stage-body { padding: 6px 8px; }
+  .paper .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .paper .fail li { color: #b00; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head" style="margin-bottom:18px">
+    <h1>📋 Scenario Builder</h1>
+    <p class="muted" style="margin:0">Fill in the form — the instructor packet on the right updates as you type. Drafts save in this browser automatically.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" onclick="printDoc()">🖨 Print / Save PDF</button>
+    <button class="btn" onclick="copyText(standaloneHtml(state.title || 'Scenario', document.getElementById('doc').innerHTML), 'Printable HTML copied')">Copy HTML</button>
+    <button class="btn" onclick="copyText(JSON.stringify(state, null, 2), 'Scenario JSON copied')">Copy JSON</button>
+    <label class="btn" style="margin:0;text-transform:none;letter-spacing:0;font-size:.92rem;color:var(--text)">Import JSON<input type="file" accept=".json,application/json" hidden onchange="readJsonFile(this, d => { load(d); toast('Scenario imported'); })"></label>
+    <button class="btn ghost" onclick="load(EXAMPLE); toast('Example loaded')">Load example</button>
+    <button class="btn ghost" onclick="load(blank()); toast('Cleared')">Clear</button>
+  </div>
+
+  <div class="gen">
+    <form class="gen-form" id="form" onsubmit="event.preventDefault()">
+      <fieldset>
+        <legend>Scenario</legend>
+        <div class="grid">
+          <div><label>Title</label><input data-k="title" placeholder="e.g. Anaphylaxis at the Picnic"></div>
+          <div class="grid g3">
+            <div><label>Level</label><select data-k="level"><option>EMR</option><option>EMT</option><option>AEMT</option><option>Paramedic</option><option>Mixed</option></select></div>
+            <div><label>Category</label><select data-k="category"><option>Medical</option><option>Trauma</option><option>Pediatric</option><option>OB/GYN</option><option>Behavioral</option><option>Cardiac</option><option>Respiratory</option><option>MCI</option></select></div>
+            <div><label>Run time</label><input data-k="duration" placeholder="15 min"></div>
+          </div>
+          <div><label>Author</label><input data-k="author"></div>
+          <div><label>Learning objectives (one per line)</label><textarea data-k="objectives"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Dispatch &amp; Scene</legend>
+        <div class="grid">
+          <div><label>Dispatch information (read aloud)</label><textarea data-k="dispatch"></textarea></div>
+          <div class="grid g2">
+            <div><label>Location</label><input data-k="location"></div>
+            <div><label>Time / weather</label><input data-k="conditions"></div>
+          </div>
+          <div><label>Scene description &amp; hazards</label><textarea data-k="scene"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Patient</legend>
+        <div class="grid">
+          <div class="grid g4">
+            <div><label>Name</label><input data-k="ptName"></div>
+            <div><label>Age</label><input data-k="ptAge"></div>
+            <div><label>Sex</label><input data-k="ptSex"></div>
+            <div><label>Weight</label><input data-k="ptWeight"></div>
+          </div>
+          <div><label>Chief complaint</label><input data-k="cc"></div>
+          <div><label>History of present illness</label><textarea data-k="hpi"></textarea></div>
+          <div class="grid g2">
+            <div><label>Allergies</label><input data-k="allergies"></div>
+            <div><label>Medications</label><input data-k="meds"></div>
+            <div><label>Past history</label><input data-k="pmh"></div>
+            <div><label>Last oral intake</label><input data-k="lastIntake"></div>
+          </div>
+          <div><label>Physical exam findings</label><textarea data-k="exam"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stages &amp; Vitals</legend>
+        <div id="stages"></div>
+        <button type="button" class="btn small" onclick="addStage()">+ Add stage</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Evaluation</legend>
+        <div class="grid">
+          <div><label>Critical actions (one per line)</label><textarea data-k="critical"></textarea></div>
+          <div><label>Critical fails (one per line)</label><textarea data-k="fails"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Setup &amp; Debrief</legend>
+        <div class="grid">
+          <div><label>Equipment / manikin</label><textarea data-k="equipment"></textarea></div>
+          <div><label>Moulage &amp; actor notes</label><textarea data-k="moulage"></textarea></div>
+          <div><label>Debrief questions (one per line)</label><textarea data-k="debrief"></textarea></div>
+        </div>
+      </fieldset>
+    </form>
+
+    <div class="paper-wrap"><div class="paper" id="doc"></div></div>
+  </div>
+</main>
+
+<script src="../assets/common.js"></script>
+<script>
+const KEY = 'emssim.scenario.draft';
+const VITALS = [['hr','HR'],['bp','BP'],['rr','RR'],['spo2','SpO₂'],['etco2','EtCO₂'],['bgl','BGL'],['temp','Temp'],['gcs','GCS']];
+
+function blankStage(n) { return { name: 'Stage ' + n, trigger: '', rhythm: '', presentation: '', interventions: '', hr:'',bp:'',rr:'',spo2:'',etco2:'',bgl:'',temp:'',gcs:'' }; }
+function blank() {
+  return { title:'', level:'EMT', category:'Medical', duration:'', author:'', objectives:'',
+    dispatch:'', location:'', conditions:'', scene:'',
+    ptName:'', ptAge:'', ptSex:'', ptWeight:'', cc:'', hpi:'', allergies:'', meds:'', pmh:'', lastIntake:'', exam:'',
+    stages: [blankStage(1)], critical:'', fails:'', equipment:'', moulage:'', debrief:'' };
+}
+
+const EXAMPLE = {
+  title: 'Anaphylaxis at the Company Picnic', level: 'EMT', category: 'Medical', duration: '15 min', author: 'Sim Coordinator',
+  objectives: 'Recognize anaphylaxis from history and exam\nAdminister epinephrine per local protocol without delay\nManage airway and reassess after each intervention',
+  dispatch: 'Medic 4, respond to Riverside Park pavilion for a 34-year-old female with difficulty breathing. Caller states she ate at a food truck. Time out 13:42.',
+  location: 'Riverside Park, covered pavilion', conditions: 'Midday, 84°F, sunny',
+  scene: 'Scene safe. Crowd of ~20 coworkers; one bystander is filming. Patient seated at picnic table in tripod position. Friend holding an empty food container.',
+  ptName: 'Dana Morales', ptAge: '34', ptSex: 'F', ptWeight: '65 kg', cc: '"My throat feels tight and I can\'t breathe."',
+  hpi: 'Ate a shrimp taco ~10 minutes ago, unaware it contained shellfish. Itching began within minutes, followed by throat tightness, hives, and nausea. Left her auto-injector at home.',
+  allergies: 'Shellfish (prior hives)', meds: 'Cetirizine PRN', pmh: 'Mild asthma', lastIntake: 'Shrimp taco, 13:30',
+  exam: 'Diffuse urticaria to chest and arms. Lip and periorbital swelling. Audible wheezing, accessory muscle use. Speaks in 3–4 word sentences. Skin flushed, warm.',
+  stages: [
+    { name: 'Initial', trigger: 'On arrival', rhythm: 'Sinus tachycardia', presentation: 'Anxious, tripod, hoarse voice, hives spreading.', interventions: 'Primary assessment, high-flow O₂, position of comfort, request ALS, epinephrine IM.',
+      hr:'124', bp:'98/60', rr:'28', spo2:'91%', etco2:'30', bgl:'104', temp:'98.9', gcs:'15' },
+    { name: 'No epi by 5 min', trigger: 'Epi not given within 5 min', rhythm: 'Sinus tachycardia', presentation: 'Stridor develops, confused, can only nod.', interventions: 'Immediate epinephrine IM, assist ventilations PRN, rapid transport.',
+      hr:'142', bp:'76/40', rr:'34', spo2:'84%', etco2:'24', bgl:'', temp:'', gcs:'13' },
+    { name: 'After epi', trigger: '3 min after epinephrine', rhythm: 'Sinus tachycardia', presentation: 'Breathing easier, swelling decreasing, still wheezing.', interventions: 'Reassess, consider bronchodilator per protocol, transport, monitor for rebound.',
+      hr:'112', bp:'112/70', rr:'22', spo2:'95%', etco2:'36', bgl:'', temp:'', gcs:'15' }
+  ],
+  critical: 'Recognizes anaphylaxis\nAdministers epinephrine within 5 minutes of patient contact\nApplies high-flow oxygen\nReassesses vitals after intervention\nInitiates timely transport',
+  fails: 'Fails to administer epinephrine\nFails to manage airway/ventilation\nPerforms an intervention harmful to the patient',
+  equipment: 'Adult manikin or live actor, BVM, NRB, O₂ tank, epinephrine trainer, nebulizer, pulse ox, BP cuff, stretcher',
+  moulage: 'Red marker/blush for hives on chest and arms; lip swelling with putty. Actor: hoarse whisper, frequent throat clearing, increasing panic if no epi.',
+  debrief: 'What findings told you this was anaphylaxis and not asthma?\nWhat made you decide when to give epinephrine?\nHow did you plan for a possible biphasic reaction?'
+};
+
+let state = store.get(KEY) || blank();
+
+/* ---------- form <-> state ---------- */
+const form = document.getElementById('form');
+form.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.k) state[el.dataset.k] = el.value;
+  else if (el.dataset.s !== undefined) state.stages[+el.dataset.s][el.dataset.f] = el.value;
+  else return;
+  save(); renderDoc();
+});
+
+function fillForm() {
+  form.querySelectorAll('[data-k]').forEach(el => { el.value = state[el.dataset.k] || (el.tagName === 'SELECT' ? el.options[0].value : ''); });
+  renderStages();
+}
+
+function renderStages() {
+  document.getElementById('stages').innerHTML = state.stages.map((s, i) => `
+    <div class="repeat-row">
+      ${state.stages.length > 1 ? `<button type="button" class="btn small ghost remove" onclick="removeStage(${i})" aria-label="Remove stage">✕</button>` : ''}
+      <div class="grid g2">
+        <div><label>Stage name</label><input data-s="${i}" data-f="name" value="${escapeHtml(s.name)}"></div>
+        <div><label>Trigger / timing</label><input data-s="${i}" data-f="trigger" value="${escapeHtml(s.trigger)}"></div>
+      </div>
+      <div class="stage-vitals">
+        ${VITALS.map(([f, l]) => `<div><label>${l}</label><input data-s="${i}" data-f="${f}" value="${escapeHtml(s[f])}"></div>`).join('')}
+      </div>
+      <div class="grid">
+        <div><label>Rhythm</label><input data-s="${i}" data-f="rhythm" value="${escapeHtml(s.rhythm)}"></div>
+        <div><label>Patient presentation</label><textarea data-s="${i}" data-f="presentation">${escapeHtml(s.presentation)}</textarea></div>
+        <div><label>Expected interventions</label><textarea data-s="${i}" data-f="interventions">${escapeHtml(s.interventions)}</textarea></div>
+      </div>
+    </div>`).join('');
+}
+function addStage() { state.stages.push(blankStage(state.stages.length + 1)); save(); renderStages(); renderDoc(); }
+function removeStage(i) { state.stages.splice(i, 1); save(); renderStages(); renderDoc(); }
+
+function load(d) { state = Object.assign(blank(), JSON.parse(JSON.stringify(d))); if (!state.stages || !state.stages.length) state.stages = [blankStage(1)]; save(); fillForm(); renderDoc(); }
+function save() { store.set(KEY, state); }
+
+/* ---------- document ---------- */
+const v = (x) => x ? escapeHtml(x) : '<span class="empty">—</span>';
+const box = (x) => `<div class="box">${x ? escapeHtml(x) : '<span class="empty">Not specified</span>'}</div>`;
+const list = (x, cls) => {
+  const items = (x || '').split('\n').map(s => s.trim()).filter(Boolean);
+  return items.length ? `<ul class="${cls || ''}">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : '<div class="box"><span class="empty">None listed</span></div>';
+};
+const checklist = (x) => {
+  const items = (x || '').split('\n').map(s => s.trim()).filter(Boolean);
+  if (!items.length) return '<div class="box"><span class="empty">None listed</span></div>';
+  return `<table><tr><th>Critical action</th><th style="width:70px">Done</th><th style="width:90px">Time</th></tr>${items.map(i => `<tr><td>${escapeHtml(i)}</td><td><span class="check"></span></td><td></td></tr>`).join('')}</table>`;
+};
+
+function renderDoc() {
+  const s = state;
+  const usedVitals = VITALS.filter(([f]) => s.stages.some(st => st[f]));
+  const vitalsTable = usedVitals.length ? `
+    <table class="vitals">
+      <tr><th>Stage</th>${usedVitals.map(([, l]) => `<th>${l}</th>`).join('')}</tr>
+      ${s.stages.map(st => `<tr><td>${v(st.name)}</td>${usedVitals.map(([f]) => `<td>${st[f] ? escapeHtml(st[f]) : '—'}</td>`).join('')}</tr>`).join('')}
+    </table>` : '';
+
+  document.getElementById('doc').innerHTML = `
+    <div class="doc-head">
+      <div>
+        <div class="sim-banner">Simulation scenario — for training use only</div>
+        <h1>${s.title ? escapeHtml(s.title) : '<span class="empty">Untitled scenario</span>'}</h1>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#555">${s.author ? 'Author: ' + escapeHtml(s.author) + '<br>' : ''}${new Date().toLocaleDateString()}</div>
+    </div>
+    <div class="meta-grid">
+      <div><small>Level</small>${v(s.level)}</div>
+      <div><small>Category</small>${v(s.category)}</div>
+      <div><small>Run time</small>${v(s.duration)}</div>
+      <div><small>Stages</small>${s.stages.length}</div>
+    </div>
+
+    <h2>Learning objectives</h2>${list(s.objectives)}
+
+    <div class="avoid-break">
+      <h2>Dispatch</h2>${box(s.dispatch)}
+      <table><tr><th style="width:50%">Location</th><th>Time / weather</th></tr><tr><td>${v(s.location)}</td><td>${v(s.conditions)}</td></tr></table>
+      <strong style="font-size:11px;text-transform:uppercase">Scene</strong>${box(s.scene)}
+    </div>
+
+    <div class="avoid-break">
+      <h2>Patient</h2>
+      <table>
+        <tr><th>Name</th><th>Age</th><th>Sex</th><th>Weight</th></tr>
+        <tr><td>${v(s.ptName)}</td><td>${v(s.ptAge)}</td><td>${v(s.ptSex)}</td><td>${v(s.ptWeight)}</td></tr>
+      </table>
+      <table>
+        <tr><th style="width:150px">Chief complaint</th><td>${v(s.cc)}</td></tr>
+        <tr><th>HPI</th><td style="white-space:pre-wrap">${v(s.hpi)}</td></tr>
+        <tr><th>Allergies</th><td>${v(s.allergies)}</td></tr>
+        <tr><th>Medications</th><td>${v(s.meds)}</td></tr>
+        <tr><th>Past history</th><td>${v(s.pmh)}</td></tr>
+        <tr><th>Last oral intake</th><td>${v(s.lastIntake)}</td></tr>
+        <tr><th>Exam findings</th><td style="white-space:pre-wrap">${v(s.exam)}</td></tr>
+      </table>
+    </div>
+
+    <h2>Progression</h2>
+    ${vitalsTable}
+    ${s.stages.map((st, i) => `
+      <div class="stage avoid-break">
+        <div class="stage-head"><span>${i + 1}. ${v(st.name)}</span><span style="font-weight:400">${st.trigger ? 'Trigger: ' + escapeHtml(st.trigger) : ''}</span></div>
+        <div class="stage-body">
+          ${st.rhythm ? `<div><strong>Rhythm:</strong> ${escapeHtml(st.rhythm)}</div>` : ''}
+          <div class="two">
+            <div><strong>Presentation</strong><div style="white-space:pre-wrap">${v(st.presentation)}</div></div>
+            <div><strong>Expected interventions</strong><div style="white-space:pre-wrap">${v(st.interventions)}</div></div>
+          </div>
+        </div>
+      </div>`).join('')}
+
+    <div class="avoid-break">
+      <h2>Evaluation</h2>
+      ${checklist(s.critical)}
+      <strong style="font-size:11px;text-transform:uppercase;color:#b00">Critical fails</strong>
+      ${list(s.fails, 'fail')}
+    </div>
+
+    <div class="avoid-break">
+      <h2>Setup</h2>
+      <div class="two">
+        <div><strong style="font-size:11px;text-transform:uppercase">Equipment</strong>${box(s.equipment)}</div>
+        <div><strong style="font-size:11px;text-transform:uppercase">Moulage &amp; actor</strong>${box(s.moulage)}</div>
+      </div>
+    </div>
+
+    <div class="avoid-break">
+      <h2>Debrief</h2>${list(s.debrief)}
+    </div>
+    <p style="font-size:10px;color:#888;margin-top:20px">Generated with EMS Sim Lab. Educational simulation material — not clinical guidance. Follow local protocols and medical direction.</p>`;
+}
+
+renderTopbar('../', 'home');
+fillForm();
+renderDoc();
+</script>
+</body>
+</html>
