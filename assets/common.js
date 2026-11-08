@@ -16,7 +16,7 @@
       '<a href="' + home + '#tools"' + (active === 'home' ? ' class="active"' : '') + '>Tools</a>' +
       '<a href="' + root + 'statchart-sim/index.html"' + (active === 'statchart' ? ' class="active"' : '') + '>StatChart-Sim</a>' +
       '<a href="' + home + '#about">About</a>' +
-      '<a href="https://github.com/ems-simlab">GitHub</a>' +
+      '<a href="https://github.com/ems-simlab/EMS-SimLab">GitHub</a>' +
       '</nav>';
     document.body.prepend(bar);
   };
