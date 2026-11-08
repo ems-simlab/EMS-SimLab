@@ -1,5 +1,7 @@
 # EMS Sim Lab
 
+**Live site: [www.emssimlab.org](https://www.emssimlab.org)**
+
 Free, open-source browser tools for EMS simulation and education: paperwork generators, scenario builders and skills sheets. Built by EMS educators for the wider EMS education community.
 
 Every tool is a plain HTML page. There's no server, no database, no build step, and no account. It runs in any modern browser, works offline once loaded, and prints (or saves to PDF) straight from the page.
@@ -21,18 +23,22 @@ StatChart-Sim is adapted from the original [StatChart-Sim](https://github.com/em
 * **[Scenario Builder](./tools/scenario-builder.html)** — write a full scenario (dispatch, patient, staged vitals, critical actions, moulage, debrief) and print it as an instructor packet. Export/import as JSON.
 * **[Skills Evaluation Sheet](./tools/skills-sheet.html)** — build a point-based skills check-off sheet with section headers, automatic totals and critical-fail criteria.
 
+### Sim running
+* **[D20 Skill Roller](./tools/d20-roller.html)** — let the dice decide skill attempts (IV starts, airways, decompression) with conditions and attempt limits, or roll scene events from an editable table. Every roll is logged for the debrief.
+
 ---
 <!--
 ## 🗂️ Project layout
 
 ```
-index.html                  EMS Sim Lab home page (tool registry lives at the bottom)
+index.html                  EMS Sim Lab home page
+tools.js                    the tool list shown on the home page (edit this to add tools)
 assets/
   site.css                  shared dark theme for EMS Sim Lab pages
   common.js                 shared top bar, toast, print/copy helpers
   tool-theme.css            dark theme layer for the StatChart-Sim generators
   favicon.svg
-tools/                      EMS Sim Lab instructor tools
+tools/                      EMS Sim Lab tools (_template.html = starter for new ones)
 statchart-sim/
   index.html                StatChart-Sim section home page
   assets/logo.svg|png       StatChart-Sim logo
@@ -41,9 +47,17 @@ statchart-sim/
 
 ## ➕ Adding a tool
 
-1. Put the page in `tools/` (or in a new section folder).
-2. Add one entry to the `TOOLS` list near the bottom of `index.html`. Use `status: 'soon'` to show it greyed out until it's ready.
-3. To give a page the shared top bar, include `assets/site.css` and `assets/common.js` and call `renderTopbar('<path to root>')`.
+You never need to edit `index.html` to add a tool.
+
+1. **Create the page.** Copy `tools/_template.html`, rename it (e.g. `tools/vitals-monitor.html`) and build the tool inside it. The template already includes the shared top bar, styles and helpers.
+2. **List it.** Open `tools.js` in the site's root folder, copy an existing entry, and change the title, icon, category, link and description. Use `status: 'soon'` to show a greyed-out "Coming soon" card until it's ready.
+3. **Commit both files.** That's it: the home page reads `tools.js` and builds the cards.
+
+If the tool list ever disappears from the home page, there's a typo in `tools.js` (usually a missing comma or quote). The page shows a warning when that happens.
+
+**Updating an existing tool** only touches that tool's own file.
+
+**Editing directly on GitHub:** open the file on github.com, click the pencil icon, make the change and commit. To add a new file, open the `tools` folder and use **Add file → Upload files**.
 
 ## 🎨 Theme notes
 

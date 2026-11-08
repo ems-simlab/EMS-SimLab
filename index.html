@@ -128,48 +128,23 @@
 
   <footer>
     <div>
-      <p>Source code licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a>. StatChart-Sim is adapted from the original <a href="https://github.com/ems-simlab/StatChart-Sim">StatChart-Sim</a> project.</p>
+      <p>Source code licensed under <a href="https://github.com/ems-simlab/EMS-SimLab/blob/main/LICENSE">GPL-3.0</a>. StatChart-Sim is adapted from the original <a href="https://github.com/ems-simlab/StatChart-Sim">StatChart-Sim</a> project.</p>
       <p>Have an idea for a tool, or want to adapt one for your state or protocols? Contributions are welcome on GitHub.</p>
     </div>
     <nav>
-      <a href="https://github.com/ems-simlab">GitHub</a>
+      <a href="https://github.com/ems-simlab/EMS-SimLab">GitHub</a>
+      <a href="https://github.com/ems-simlab/EMS-SimLab/issues">Report a problem</a>
     </nav>
   </footer>
 </main>
 
 <script src="assets/common.js"></script>
+<script src="tools.js"></script>
 <script>
-/* =====================================================================
-   TOOL REGISTRY — to add a tool, put its page in the repo and add one
-   entry here. status "live" links it; "soon" shows it greyed out.
-   category must be a key in CATEGORIES.
-   ===================================================================== */
-const CATEGORIES = {
-  statchart:  { label: 'StatChart-Sim',   tag: 'doc' },
-  instructor: { label: 'Instructor Docs', tag: 'doc' },
-  sim:        { label: 'Sim Running',     tag: 'sim' },
-  ref:        { label: 'Reference',       tag: 'ref' }
-};
-
-const TOOLS = [
-  { title: 'Discharge Summaries', icon: '🏥', category: 'statchart', status: 'live', href: 'statchart-sim/discharge-summary/index.html',
-    desc: 'Hospital discharge paperwork and clinic follow-up summaries, with a recent stay, baseline history and home-care instructions.' },
-  { title: 'Medication Administration Records', icon: '💊', category: 'statchart', status: 'live', href: 'statchart-sim/MARS/index.html',
-    desc: 'A week of scheduled doses and a PRN log, with adjustable compliance and on-screen-only dosing errors for reconciliation practice.' },
-  { title: 'DNR, POLST & MOLST Orders', icon: '⚖️', category: 'statchart', status: 'live', href: 'statchart-sim/Legal/index.html',
-    desc: 'State-specific legal directives and life-sustaining treatment orders for advance-directive scenarios.' },
-  { title: 'Scenario Builder', icon: '📋', category: 'instructor', status: 'live', href: 'tools/scenario-builder.html',
-    desc: 'Write a full sim scenario — dispatch, patient, vitals by stage, critical actions, debrief — and print it as an instructor packet.' },
-  { title: 'Skills Evaluation Sheet', icon: '✅', category: 'instructor', status: 'live', href: 'tools/skills-sheet.html',
-    desc: 'Build a point-based skills check-off sheet with critical-fail criteria, then print copies for evaluators.' },
-  { title: 'Vitals Monitor', icon: '📈', category: 'sim', status: 'soon',
-    desc: 'Full-screen mock monitor the instructor can drive live from a phone or laptop.' },
-  { title: 'Scenario Timer', icon: '⏱️', category: 'sim', status: 'soon',
-    desc: 'Run-clock with a timestamped intervention log for debriefing.' },
-  { title: 'Debrief Guide', icon: '💬', category: 'ref', status: 'soon',
-    desc: 'Structured debrief prompts (plus/delta, advocacy-inquiry) for after each run.' }
-];
-
+if (typeof TOOLS === 'undefined' || typeof CATEGORIES === 'undefined') {
+  window.TOOLS = []; window.CATEGORIES = {};
+  document.getElementById('cards').outerHTML = '<div class="panel" style="border-color:var(--red)"><strong>The tool list didn\'t load.</strong> <span class="muted">There\'s probably a typo in <code>tools.js</code>, such as a missing comma, quote or bracket. Undo your last change there, or check your browser\'s developer console for the line number.</span></div><div id="cards"></div>';
+}
 let activeCat = 'all';
 const chipsEl = document.getElementById('chips');
 const cardsEl = document.getElementById('cards');
@@ -186,7 +161,7 @@ function renderCards() {
   const list = TOOLS.filter(t =>
     (activeCat === 'all' || t.category === activeCat) &&
     (!q || (t.title + ' ' + t.desc).toLowerCase().includes(q)));
-  if (!list.length) { cardsEl.innerHTML = '<div class="empty-state">No tools match that search.</div>'; return; }
+  if (!list.length) { cardsEl.innerHTML = TOOLS.length ? '<div class="empty-state">No tools match that search.</div>' : ''; return; }
   cardsEl.innerHTML = list.map(t => {
     const cat = CATEGORIES[t.category];
     const live = t.status === 'live';
