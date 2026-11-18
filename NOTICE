@@ -1,0 +1,16 @@
+EMS Sim Lab
+Copyright 2026 Christopher Hansen
+
+This product includes StatChart-Sim, also Copyright 2026 Christopher Hansen.
+
+Licensed under the Apache License, Version 2.0 (see the LICENSE file).
+
+The names "EMS Sim Lab" and "StatChart-Sim" and their logos identify this
+project. The Apache License does not grant permission to use them (see
+section 6 of the License), except as needed to describe where the work
+came from.
+
+The license covers the software in this repository. Wording reproduced
+from official forms (for example, state advance-directive and POLST forms
+used in the Legal generator) belongs to its original publishers and is not
+licensed by this project. It is included for simulation and education only.

@@ -73,7 +73,9 @@ The authors and contributors assume no liability for any use of these tools outs
 
 ## 📜 License
 
-Licensed under the **GNU General Public License v3.0** — see [`LICENSE`](LICENSE).
+Copyright 2026 Christopher Hansen. Licensed under the **Apache License, Version 2.0** — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+Versions of this project released before November 2026 were licensed under the GNU General Public License v3.0. Copies obtained under that license keep those terms.
 
 ## 🤝 Contributing
 

@@ -76,7 +76,7 @@ of its intended simulation/educational context.
 ## License
 
 The **source code** in this repository is licensed under the
-**GNU General Public License v3.0** — see the [`LICENSE`](../../LICENSE) file for the full text.
+**Apache License, Version 2.0** — see the [`LICENSE`](../../LICENSE) and [`NOTICE`](../../NOTICE) files.
 
 The StatChart-Sim logo is part of this project and may be used with it. If you run a copy for your own program, you're welcome to swap in your own branding.
 
