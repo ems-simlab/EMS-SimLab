@@ -39,6 +39,12 @@
     <button class="btn ghost" onclick="load(blank()); toast('Cleared')">Clear</button>
   </div>
 
+  <div class="panel" id="importBanner" hidden style="margin-bottom:14px;border-left:4px solid var(--amber);flex-wrap:wrap;gap:10px;align-items:center">
+    <span style="flex:1;min-width:260px"><strong>Built from scenario <span id="importTitle"></span>.</strong> <span class="muted">Review the steps and points, then print. Your previous sheet was set aside.</span></span>
+    <button class="btn small" id="restorePrev">Restore previous sheet</button>
+    <button class="btn small ghost" onclick="hideBanner()">Dismiss</button>
+  </div>
+
   <div class="gen">
     <form class="gen-form" id="form" onsubmit="event.preventDefault()">
       <fieldset>
@@ -107,6 +113,18 @@ const EXAMPLE = {
 };
 
 let state = store.get(KEY) || blank();
+function hideBanner() { const b = document.getElementById('importBanner'); b.hidden = true; b.style.display = 'none'; }
+
+/* A sheet handed over from the Scenario Builder replaces the current draft;
+   the draft it replaces is kept so it can be restored. */
+const IMPORT_KEY = 'emssim.skills.import', PREV_KEY = 'emssim.skills.previous';
+const incoming = store.get(IMPORT_KEY);
+if (incoming) {
+  if (store.get(KEY)) store.set(PREV_KEY, store.get(KEY));
+  state = Object.assign(blank(), incoming);
+  store.set(KEY, state);
+  store.del(IMPORT_KEY);
+}
 
 const form = document.getElementById('form');
 form.addEventListener('input', e => {
@@ -194,6 +212,15 @@ function renderDoc() {
 }
 
 renderTopbar('../', 'home');
+if (incoming) {
+  const banner = document.getElementById('importBanner');
+  banner.hidden = false; banner.style.display = 'flex';
+  document.getElementById('importTitle').textContent = '“' + ((incoming.source && incoming.source.title) || 'scenario') + '”';
+  const prev = store.get(PREV_KEY);
+  const btn = document.getElementById('restorePrev');
+  if (!prev) btn.style.display = 'none';
+  btn.onclick = () => { load(prev); store.del(PREV_KEY); hideBanner(); toast('Previous sheet restored'); };
+}
 fillForm();
 renderDoc();
 </script>

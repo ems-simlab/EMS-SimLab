@@ -32,6 +32,7 @@
   <div class="toolbar">
     <button class="btn primary" onclick="printDoc()">🖨 Print / Save PDF</button>
     <button class="btn" onclick="copyText(standaloneHtml(state.title || 'Scenario', document.getElementById('doc').innerHTML), 'Printable HTML copied')">Copy HTML</button>
+    <button class="btn" onclick="buildEvalSheet()" title="Open the Skills Evaluation Sheet pre-filled from this scenario">✅ Build evaluation sheet</button>
     <button class="btn" onclick="copyText(JSON.stringify(state, null, 2), 'Scenario JSON copied')">Copy JSON</button>
     <label class="btn" style="margin:0;text-transform:none;letter-spacing:0;font-size:.92rem;color:var(--text)">Import JSON<input type="file" accept=".json,application/json" hidden onchange="readJsonFile(this, d => { load(d); toast('Scenario imported'); })"></label>
     <button class="btn ghost" onclick="load(EXAMPLE); toast('Example loaded')">Load example</button>
@@ -289,6 +290,64 @@ function renderDoc() {
       <h2>Debrief</h2>${list(s.debrief)}
     </div>
     <p style="font-size:10px;color:#888;margin-top:20px">Generated with EMS Sim Lab. Educational simulation material — not clinical guidance. Follow local protocols and medical direction.</p>`;
+}
+
+/* ---------- Scenario → Skills Evaluation Sheet ----------
+   Maps this scenario onto a sheet and hands it to tools/skills-sheet.html
+   through this browser's storage (key: emssim.skills.import). */
+const lines = t => (t || '').split('\n').map(x => x.trim()).filter(Boolean);
+function splitInterventions(t) {
+  t = (t || '').trim(); if (!t) return [];
+  const parts = t.includes('\n') ? t.split('\n') : t.split(/[;,]\s*/);
+  return parts.map(x => x.trim().replace(/\.$/, '')).filter(Boolean)
+              .map(x => x.charAt(0).toUpperCase() + x.slice(1));
+}
+// Skip a stage item when an earlier step already says the same thing
+// (e.g. "Primary assessment" vs "Performs a primary assessment ...").
+const norm = t => t.toLowerCase().replace(/[^a-z0-9₂]+/g, ' ').trim();
+function alreadyCovered(item, steps) {
+  const n = norm(item);
+  return n && steps.some(st => !st.section && norm(st.text).includes(n));
+}
+function scenarioToSheet(sc) {
+  const steps = [
+    { text: '# Scene & assessment', section: true },
+    { text: 'Takes or verbalizes PPE precautions and scene safety', pts: 1 },
+    { text: 'Performs a primary assessment (airway, breathing, circulation)', pts: 1 },
+    { text: 'Obtains a full set of vital signs', pts: 1 },
+    { text: 'Obtains a focused history', pts: 1 }
+  ];
+  const crit = lines(sc.critical);
+  if (crit.length) {
+    steps.push({ text: '# Critical actions', section: true });
+    crit.forEach(c => steps.push({ text: c, pts: 2 }));
+  }
+  (sc.stages || []).forEach((st, i) => {
+    const items = splitInterventions(st.interventions);
+    if (!items.length) return;
+    const head = `# Stage ${i + 1}: ${st.name || 'Stage'}` + (st.trigger && i > 0 ? ` (${st.trigger})` : '');
+    steps.push({ text: head, section: true });
+    items.forEach(it => { if (!alreadyCovered(it, steps)) steps.push({ text: it, pts: 1 }); });
+  });
+  const levels = ['EMR', 'EMT', 'AEMT', 'Paramedic'];
+  const prev = store.get('emssim.skills.draft') || {};
+  return {
+    org: prev.org || '',
+    skill: sc.title ? `Scenario: ${sc.title}` : 'Scenario evaluation',
+    level: levels.includes(sc.level) ? sc.level : (prev.level || 'EMT'),
+    timeLimit: sc.duration || '',
+    passScore: '',
+    instructions: (sc.dispatch ? sc.dispatch.trim() + ' ' : '') + 'Assess and manage this patient. Verbalize your findings and treatment decisions as you go.',
+    steps,
+    fails: sc.fails || '',
+    source: { title: sc.title || 'Untitled scenario', at: Date.now() }
+  };
+}
+function buildEvalSheet() {
+  const hasContent = lines(state.critical).length || (state.stages || []).some(st => splitInterventions(st.interventions).length);
+  if (!hasContent) { toast('Add critical actions or expected interventions first'); return; }
+  if (!store.set('emssim.skills.import', scenarioToSheet(state))) { toast('This browser blocked saving, so the sheet could not be built'); return; }
+  location.href = 'skills-sheet.html';
 }
 
 renderTopbar('../', 'home');
