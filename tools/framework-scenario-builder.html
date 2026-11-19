@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Framework Scenario Builder — EMS Sim Lab</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .stage-vitals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; }
+  .stage-vitals label { font-size: .68rem; }
+  .paper .vitals td { font-family: var(--mono); text-align: center; }
+  .paper .vitals td:first-child { font-family: var(--font); text-align: left; font-weight: 600; }
+  .paper .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #999; margin-top: 8px; }
+  .paper .meta-grid div { padding: 5px 7px; border-right: 1px solid #ccc; }
+  .paper .meta-grid div:last-child { border-right: 0; }
+  .paper .meta-grid small { display: block; font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: .05em; }
+  .paper .stage { border: 1px solid #999; margin-bottom: 8px; }
+  .paper .stage-head { background: #eef1f4; padding: 5px 8px; font-weight: 700; display: flex; justify-content: space-between; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper .stage-body { padding: 6px 8px; }
+  .paper .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .paper .fail li { color: #b00; }
+  .checks { display: grid; gap: 6px; }
+  .checks.cols2 { grid-template-columns: 1fr 1fr; }
+  .checks label { display: flex; align-items: flex-start; gap: 8px; margin: 0; text-transform: none; letter-spacing: 0;
+    font-weight: 500; font-size: .9rem; color: var(--text); cursor: pointer;
+    padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #0b121a; }
+  .checks label.on { border-color: var(--blue); }
+  .checks input { width: auto; margin: 3px 0 0; accent-color: var(--red); }
+  .checks small { display: block; color: var(--muted); font-weight: 400; font-size: .76rem; }
+  label .opt { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
+  .hint { font-size: .8rem; color: var(--muted); margin: 4px 0 0; line-height: 1.4; }
+  .hint.warn { color: var(--amber); }
+  .callout { background: #0b121a; border-left: 3px solid var(--blue); border-radius: 6px; padding: 8px 10px; font-size: .85rem; margin-top: 8px; }
+  .paper .grs td.n { width: 34px; text-align: center; font-family: var(--mono); color: #777; }
+  .paper .grs th.n { width: 34px; text-align: center; }
+  .paper .tagline { font-size: 11px; color: #555; font-weight: 400; }
+  .paper .cjf { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #1c2a3a; border: 1px solid #1c2a3a; border-radius: 3px; padding: 0 4px; margin-left: 6px; font-weight: 700; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head" style="margin-bottom:18px">
+    <h1>🧭 Framework Scenario Builder</h1>
+    <p class="muted" style="margin:0">Write a scenario by hand, aligned to the program phase, Clinical Judgment Framework (CJF) steps and Global Rating Scale (GRS) dimensions. The instructor packet on the right updates as you type, with a GRS rating sheet and CJF debrief prompts. Drafts save in this browser automatically.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" onclick="printDoc()">🖨 Print / Save PDF</button>
+    <button class="btn" onclick="copyText(standaloneHtml(state.title || 'Scenario', document.getElementById('doc').innerHTML), 'Printable HTML copied')">Copy HTML</button>
+    <button class="btn" onclick="buildEvalSheet()" title="Open the Skills Evaluation Sheet pre-filled from this scenario">✅ Build evaluation sheet</button>
+    <button class="btn" onclick="copyText(JSON.stringify(state, null, 2), 'Scenario JSON copied')">Copy JSON</button>
+    <label class="btn" style="margin:0;text-transform:none;letter-spacing:0;font-size:.92rem;color:var(--text)">Import JSON<input type="file" accept=".json,application/json" hidden onchange="readJsonFile(this, d => { load(d); toast('Scenario imported'); })"></label>
+    <button class="btn ghost" onclick="load(EXAMPLE); toast('Example loaded')">Load example</button>
+    <button class="btn ghost" onclick="load(blank()); toast('Cleared')">Clear</button>
+  </div>
+
+  <div class="gen">
+    <form class="gen-form" id="form" onsubmit="event.preventDefault()">
+      <fieldset>
+        <legend>Scenario</legend>
+        <div class="grid">
+          <div><label>Title</label><input data-k="title" placeholder="e.g. Anaphylaxis at the Picnic"></div>
+          <div class="grid g3">
+            <div><label>Level</label><select data-k="level"><option>EMR</option><option>EMT</option><option>AEMT</option><option>Paramedic</option><option>Mixed</option></select></div>
+            <div><label>Category</label><select data-k="category"><option>Medical</option><option>Trauma</option><option>Pediatric</option><option>OB/GYN</option><option>Behavioral</option><option>Cardiac</option><option>Respiratory</option><option>MCI</option></select></div>
+            <div><label>Run time</label><input data-k="duration" placeholder="15 min"></div>
+          </div>
+          <div><label>Author</label><input data-k="author"></div>
+          <div><label>Scenario learning objectives <span class="opt">one per line</span></label><textarea data-k="objectives"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Framework alignment</legend>
+        <div class="grid">
+          <div>
+            <label>Program phase</label>
+            <select data-k="programPhase" id="programPhase"></select>
+            <p class="hint" id="phaseHint"></p>
+          </div>
+          <div><label>Call phase emphasis <span class="opt">one or more</span></label><div class="checks" id="ck-callPhases"></div></div>
+          <div><label>Clinical Judgment Framework steps</label><div class="checks" id="ck-cjfSteps"></div></div>
+          <div><label>GRS dimensions <span class="opt">at least 2</span></label><div class="checks cols2" id="ck-grsDims"></div><p class="hint warn" id="grsWarn"></p></div>
+          <div><label>Enrichment variables <span class="opt">at least 1</span></label><div class="checks cols2" id="ck-enrichment"></div><p class="hint warn" id="enrWarn"></p></div>
+          <div><label>How the enrichment shows up in this scenario</label><textarea data-k="enrichNotes" placeholder="e.g. Bystander filming adds pressure; epinephrine must be given within 5 minutes."></textarea></div>
+          <div>
+            <label>Framework learning objective</label>
+            <select data-k="objectiveId" id="objectiveId"></select>
+            <div class="callout" id="objHint"></div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Dispatch &amp; Scene</legend>
+        <div class="grid">
+          <div><label>Dispatch information (read aloud)</label><textarea data-k="dispatch"></textarea></div>
+          <div class="grid g2">
+            <div><label>Location</label><input data-k="location"></div>
+            <div><label>Time / weather</label><input data-k="conditions"></div>
+          </div>
+          <div><label>Scene description &amp; hazards</label><textarea data-k="scene"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Patient</legend>
+        <div class="grid">
+          <div class="grid g4">
+            <div><label>Name</label><input data-k="ptName"></div>
+            <div><label>Age</label><input data-k="ptAge"></div>
+            <div><label>Sex</label><input data-k="ptSex"></div>
+            <div><label>Weight</label><input data-k="ptWeight"></div>
+          </div>
+          <div><label>Chief complaint</label><input data-k="cc"></div>
+          <div><label>History of present illness</label><textarea data-k="hpi"></textarea></div>
+          <div class="grid g2">
+            <div><label>Allergies</label><input data-k="allergies"></div>
+            <div><label>Medications</label><input data-k="meds"></div>
+            <div><label>Past history</label><input data-k="pmh"></div>
+            <div><label>Last oral intake</label><input data-k="lastIntake"></div>
+          </div>
+          <div><label>Physical exam findings</label><textarea data-k="exam"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stages &amp; Vitals</legend>
+        <div id="stages"></div>
+        <button type="button" class="btn small" onclick="addStage()">+ Add stage</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Evaluation</legend>
+        <div class="grid">
+          <div><label>Critical actions (one per line)</label><textarea data-k="critical"></textarea></div>
+          <div><label>Critical fails (one per line)</label><textarea data-k="fails"></textarea></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Setup &amp; Debrief</legend>
+        <div class="grid">
+          <div><label>Equipment / manikin</label><textarea data-k="equipment"></textarea></div>
+          <div><label>Moulage &amp; actor notes</label><textarea data-k="moulage"></textarea></div>
+          <div><label>Extra debrief questions <span class="opt">one per line · CJF prompts are added automatically</span></label><textarea data-k="debrief"></textarea></div>
+        </div>
+      </fieldset>
+    </form>
+
+    <div class="paper-wrap"><div class="paper" id="doc"></div></div>
+  </div>
+</main>
+
+<script src="../assets/common.js"></script>
+<script>
+const KEY = 'emssim.fwscenario.draft';
+
+/* ---------- Curriculum framework (shared with the Scenario Generator) ---------- */
+const PROGRAM_PHASES = [
+  { id: "formative-i",   label: "Formative I",   desc: "Single-system, low-ambiguity, instructor-led debrief",            tier: "T1" },
+  { id: "formative-ii",  label: "Formative II",  desc: "1–3 systems, medium ambiguity (8-week variant only)",             tier: "T1" },
+  { id: "formative",     label: "Formative",     desc: "Recall / apply — guided, single-system, low-ambiguity",           tier: "T1" },
+  { id: "competency",    label: "Competency",    desc: "Analyze — complicating factors, multi-system, semi-independent",  tier: "T2" },
+  { id: "capstone",      label: "Capstone",      desc: "Evaluate / create — high-acuity, fully independent, all CJF steps", tier: "T3" },
+];
+
+const CALL_PHASES = [
+  { id: "en-route", label: "En Route" },
+  { id: "scene",    label: "Scene"    },
+  { id: "post-scene", label: "Post-Scene" },
+];
+
+const CJF_STEPS = [
+  { id: 1, label: "Step 1 — Gather",      desc: "Collect dispatch & initial cues" },
+  { id: 2, label: "Step 2 — Interpret",   desc: "Form initial differential" },
+  { id: 3, label: "Step 3 — Plan",        desc: "Select interventions and priorities" },
+  { id: 4, label: "Step 4 — Execute",     desc: "Implement treatments in sequence" },
+  { id: 5, label: "Step 5 — Evaluate",    desc: "Reassess and revise the differential" },
+  { id: 6, label: "Step 6 — Reflect",     desc: "Post-scene / handoff communication" },
+];
+
+const GRS_DIMS = [
+  { id: "situation-awareness", label: "Situation Awareness" },
+  { id: "history-gathering",   label: "History Gathering"   },
+  { id: "patient-assessment",  label: "Patient Assessment"  },
+  { id: "decision-making",     label: "Decision Making"     },
+  { id: "implementation",      label: "Implementation"      },
+  { id: "resource-utilization",label: "Resource Utilization"},
+  { id: "communication",       label: "Communication"       },
+];
+
+const ENRICHMENT_VARS = [
+  { id: "time-pressure",          label: "Time Pressure"           },
+  { id: "environmental-constraint", label: "Environmental Constraint" },
+  { id: "resource-limitation",    label: "Resource Limitation"     },
+  { id: "scene-hazard",           label: "Scene Hazard"            },
+];
+
+const LEARNING_OBJECTIVES = [
+  { id:"enr-f", phase:"Formative",   callPhase:"En Route",    bloom:"recall / apply",    text:"State the dispatch information that changes the initial differential and equipment plan" },
+  { id:"enr-c", phase:"Competency",  callPhase:"En Route",    bloom:"analyze",           text:"Prioritize which dispatch and scene-safety cues most change the approach, given ambiguous or conflicting information" },
+  { id:"enr-k", phase:"Capstone",    callPhase:"En Route",    bloom:"evaluate / create", text:"Justify, under a degraded-resource constraint, a complete en-route plan a peer reviewer would accept without revision" },
+  { id:"sc-f",  phase:"Formative",   callPhase:"Scene",       bloom:"recall / apply",    text:"Gather a focused history and exam appropriate to a single-system presentation" },
+  { id:"sc-c",  phase:"Competency",  callPhase:"Scene",       bloom:"analyze",           text:"Integrate competing findings across systems to rank two or more differentials" },
+  { id:"sc-k",  phase:"Capstone",    callPhase:"Scene",       bloom:"evaluate / create", text:"Defend a differential and treatment plan in real time as new findings contradict the working impression" },
+  { id:"ps-f",  phase:"Formative",   callPhase:"Post-Scene",  bloom:"recall / apply",    text:"Deliver an accurate, complete handoff using a standard format" },
+  { id:"ps-c",  phase:"Competency",  callPhase:"Post-Scene",  bloom:"analyze",           text:"Identify what in the call should change the handoff emphasis for this specific receiving team" },
+  { id:"ps-k",  phase:"Capstone",    callPhase:"Post-Scene",  bloom:"evaluate / create", text:"Construct and justify a transport/destination decision and handoff under a resource or time constraint the student did not anticipate" },
+];
+
+const CJF_DEBRIEF = {
+  1: ["What did dispatch give you, and what did you do with it before arrival?", "What were the first scene cues you registered on arrival?"],
+  2: ["What was your initial working impression and what drove it?", "What information would have changed your differential?"],
+  3: ["Walk me through your priority order and why.", "What would you have done differently if one resource was unavailable?"],
+  4: ["What did you do first, and why that order?", "Were there any interventions you delayed or skipped? What drove that?"],
+  5: ["At what point did something make you revise your working diagnosis?", "What data point changed your picture the most?"],
+  6: ["What did your handoff communicate, and what did it leave out?", "What would a crew taking over this patient need to know that wasn't in your handoff?"],
+};
+
+const FW_ARRAYS = { callPhases: CALL_PHASES, cjfSteps: CJF_STEPS, grsDims: GRS_DIMS, enrichment: ENRICHMENT_VARS };
+const BLOOM = { 'formative-i':'recall / apply', 'formative-ii':'recall / apply', formative:'recall / apply', competency:'analyze', capstone:'evaluate / create' };
+const GRS_SCALE = 7;
+const VITALS = [['hr','HR'],['bp','BP'],['rr','RR'],['spo2','SpO₂'],['etco2','EtCO₂'],['bgl','BGL'],['temp','Temp'],['gcs','GCS']];
+
+function blankStage(n) { return { name: 'Stage ' + n, trigger: '', callPhase: 'Scene', cjf: '', rhythm: '', presentation: '', interventions: '', hr:'',bp:'',rr:'',spo2:'',etco2:'',bgl:'',temp:'',gcs:'' }; }
+function blank() {
+  return { title:'', level:'EMT', category:'Medical', duration:'', author:'', objectives:'',
+    programPhase:'formative', callPhases:['scene'], cjfSteps:[1,2], grsDims:['patient-assessment','decision-making'], enrichment:['time-pressure'], enrichNotes:'', objectiveId:'sc-f',
+    dispatch:'', location:'', conditions:'', scene:'',
+    ptName:'', ptAge:'', ptSex:'', ptWeight:'', cc:'', hpi:'', allergies:'', meds:'', pmh:'', lastIntake:'', exam:'',
+    stages: [blankStage(1)], critical:'', fails:'', equipment:'', moulage:'', debrief:'' };
+}
+
+const EXAMPLE = {
+  title: 'Anaphylaxis at the Company Picnic', level: 'EMT', category: 'Medical', duration: '15 min', author: 'Sim Coordinator',
+  programPhase: 'formative', callPhases: ['scene', 'post-scene'], cjfSteps: [1, 2, 4, 5], grsDims: ['situation-awareness', 'patient-assessment', 'decision-making', 'implementation'],
+  enrichment: ['time-pressure', 'environmental-constraint'], objectiveId: 'sc-f',
+  enrichNotes: 'Time pressure: the patient deteriorates if epinephrine is not given within 5 minutes. Environment: crowded pavilion, heat, and a bystander filming.',
+  objectives: 'Recognize anaphylaxis from history and exam\nAdminister epinephrine per local protocol without delay\nManage airway and reassess after each intervention',
+  dispatch: 'Medic 4, respond to Riverside Park pavilion for a 34-year-old female with difficulty breathing. Caller states she ate at a food truck. Time out 13:42.',
+  location: 'Riverside Park, covered pavilion', conditions: 'Midday, 84°F, sunny',
+  scene: 'Scene safe. Crowd of ~20 coworkers; one bystander is filming. Patient seated at picnic table in tripod position. Friend holding an empty food container.',
+  ptName: 'Dana Morales', ptAge: '34', ptSex: 'F', ptWeight: '65 kg', cc: '"My throat feels tight and I can\'t breathe."',
+  hpi: 'Ate a shrimp taco ~10 minutes ago, unaware it contained shellfish. Itching began within minutes, followed by throat tightness, hives, and nausea. Left her auto-injector at home.',
+  allergies: 'Shellfish (prior hives)', meds: 'Cetirizine PRN', pmh: 'Mild asthma', lastIntake: 'Shrimp taco, 13:30',
+  exam: 'Diffuse urticaria to chest and arms. Lip and periorbital swelling. Audible wheezing, accessory muscle use. Speaks in 3–4 word sentences. Skin flushed, warm.',
+  stages: [
+    { name: 'Initial', trigger: 'On arrival', callPhase: 'Scene', cjf: '1', rhythm: 'Sinus tachycardia', presentation: 'Anxious, tripod, hoarse voice, hives spreading.', interventions: 'Primary assessment, high-flow O₂, position of comfort, request ALS, epinephrine IM.',
+      hr:'124', bp:'98/60', rr:'28', spo2:'91%', etco2:'30', bgl:'104', temp:'98.9', gcs:'15' },
+    { name: 'No epi by 5 min', trigger: 'Epi not given within 5 min', callPhase: 'Scene', cjf: '4', rhythm: 'Sinus tachycardia', presentation: 'Stridor develops, confused, can only nod.', interventions: 'Immediate epinephrine IM, assist ventilations PRN, rapid transport.',
+      hr:'142', bp:'76/40', rr:'34', spo2:'84%', etco2:'24', bgl:'', temp:'', gcs:'13' },
+    { name: 'After epi', trigger: '3 min after epinephrine', callPhase: 'Scene', cjf: '5', rhythm: 'Sinus tachycardia', presentation: 'Breathing easier, swelling decreasing, still wheezing.', interventions: 'Reassess, consider bronchodilator per protocol, transport, monitor for rebound.',
+      hr:'112', bp:'112/70', rr:'22', spo2:'95%', etco2:'36', bgl:'', temp:'', gcs:'15' }
+  ],
+  critical: 'Recognizes anaphylaxis\nAdministers epinephrine within 5 minutes of patient contact\nApplies high-flow oxygen\nReassesses vitals after intervention\nInitiates timely transport',
+  fails: 'Fails to administer epinephrine\nFails to manage airway/ventilation\nPerforms an intervention harmful to the patient',
+  equipment: 'Adult manikin or live actor, BVM, NRB, O₂ tank, epinephrine trainer, nebulizer, pulse ox, BP cuff, stretcher',
+  moulage: 'Red marker/blush for hives on chest and arms; lip swelling with putty. Actor: hoarse whisper, frequent throat clearing, increasing panic if no epi.',
+  debrief: 'What findings told you this was anaphylaxis and not asthma?\nWhat made you decide when to give epinephrine?\nHow did you plan for a possible biphasic reaction?'
+};
+
+let state = store.get(KEY) || blank();
+
+/* ---------- form <-> state ---------- */
+const form = document.getElementById('form');
+form.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.arr) {
+    const key = el.dataset.arr, val = FW_ARRAYS[key][0] && typeof FW_ARRAYS[key][0].id === 'number' ? +el.value : el.value;
+    const arr = state[key] = (state[key] || []).filter(x => x !== val);
+    if (el.checked) arr.push(val);
+    el.closest('label').classList.toggle('on', el.checked);
+    save(); renderFwHints(); renderDoc(); return;
+  }
+  if (el.dataset.k) state[el.dataset.k] = el.value;
+  if (el.dataset.k === 'programPhase' || el.dataset.k === 'objectiveId') renderFwHints();
+  else if (el.dataset.s !== undefined) state.stages[+el.dataset.s][el.dataset.f] = el.value;
+  else return;
+  save(); renderDoc();
+});
+
+function setupFw() {
+  document.getElementById('programPhase').innerHTML = PROGRAM_PHASES.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+  document.getElementById('objectiveId').innerHTML = ['Formative', 'Competency', 'Capstone'].map(ph =>
+    `<optgroup label="${ph}">${LEARNING_OBJECTIVES.filter(o => o.phase === ph).map(o => `<option value="${o.id}">[${o.callPhase} · ${o.bloom}] ${escapeHtml(o.text)}</option>`).join('')}</optgroup>`).join('');
+}
+function renderChecks() {
+  Object.entries(FW_ARRAYS).forEach(([key, items]) => {
+    const sel = state[key] || [];
+    document.getElementById('ck-' + key).innerHTML = items.map(it => {
+      const on = sel.includes(it.id);
+      return `<label class="${on ? 'on' : ''}"><input type="checkbox" data-arr="${key}" value="${it.id}"${on ? ' checked' : ''}><span>${escapeHtml(it.label)}${it.desc ? `<small>${escapeHtml(it.desc)}</small>` : ''}</span></label>`;
+    }).join('');
+  });
+}
+function renderFwHints() {
+  const ph = PROGRAM_PHASES.find(p => p.id === state.programPhase);
+  document.getElementById('phaseHint').innerHTML = ph ? `${escapeHtml(ph.desc)} · Bloom's level: <strong>${BLOOM[ph.id]}</strong> · Tier ${ph.tier}` : '';
+  const o = LEARNING_OBJECTIVES.find(x => x.id === state.objectiveId);
+  document.getElementById('objHint').innerHTML = o ? `<strong>${o.phase} · ${o.callPhase} · ${o.bloom}</strong><br>${escapeHtml(o.text)}` : '';
+  document.getElementById('grsWarn').textContent = (state.grsDims || []).length < 2 ? 'Select at least 2 dimensions.' : '';
+  document.getElementById('enrWarn').textContent = (state.enrichment || []).length < 1 ? 'Select at least 1 enrichment variable.' : '';
+}
+
+function fillForm() {
+  form.querySelectorAll('[data-k]').forEach(el => { el.value = state[el.dataset.k] || (el.tagName === 'SELECT' ? el.options[0].value : ''); });
+  renderChecks(); renderFwHints();
+  renderStages();
+}
+
+function renderStages() {
+  document.getElementById('stages').innerHTML = state.stages.map((s, i) => `
+    <div class="repeat-row">
+      ${state.stages.length > 1 ? `<button type="button" class="btn small ghost remove" onclick="removeStage(${i})" aria-label="Remove stage">✕</button>` : ''}
+      <div class="grid g2">
+        <div><label>Stage name</label><input data-s="${i}" data-f="name" value="${escapeHtml(s.name)}"></div>
+        <div><label>Trigger / timing</label><input data-s="${i}" data-f="trigger" value="${escapeHtml(s.trigger)}"></div>
+        <div><label>Call phase</label><select data-s="${i}" data-f="callPhase">${CALL_PHASES.map(c => `<option${s.callPhase === c.label ? ' selected' : ''}>${c.label}</option>`).join('')}</select></div>
+        <div><label>CJF focus</label><select data-s="${i}" data-f="cjf"><option value="">—</option>${CJF_STEPS.map(c => `<option value="${c.id}"${String(s.cjf) === String(c.id) ? ' selected' : ''}>${c.label}</option>`).join('')}</select></div>
+      </div>
+      <div class="stage-vitals">
+        ${VITALS.map(([f, l]) => `<div><label>${l}</label><input data-s="${i}" data-f="${f}" value="${escapeHtml(s[f])}"></div>`).join('')}
+      </div>
+      <div class="grid">
+        <div><label>Rhythm</label><input data-s="${i}" data-f="rhythm" value="${escapeHtml(s.rhythm)}"></div>
+        <div><label>Patient presentation</label><textarea data-s="${i}" data-f="presentation">${escapeHtml(s.presentation)}</textarea></div>
+        <div><label>Expected interventions</label><textarea data-s="${i}" data-f="interventions">${escapeHtml(s.interventions)}</textarea></div>
+      </div>
+    </div>`).join('');
+}
+function addStage() { state.stages.push(blankStage(state.stages.length + 1)); save(); renderStages(); renderDoc(); }
+function removeStage(i) { state.stages.splice(i, 1); save(); renderStages(); renderDoc(); }
+
+function load(d) { state = Object.assign(blank(), JSON.parse(JSON.stringify(d))); if (!state.stages || !state.stages.length) state.stages = [blankStage(1)]; save(); fillForm(); renderDoc(); }
+function save() { store.set(KEY, state); }
+
+/* ---------- document ---------- */
+const v = (x) => x ? escapeHtml(x) : '<span class="empty">—</span>';
+const box = (x) => `<div class="box">${x ? escapeHtml(x) : '<span class="empty">Not specified</span>'}</div>`;
+const list = (x, cls) => {
+  const items = (x || '').split('\n').map(s => s.trim()).filter(Boolean);
+  return items.length ? `<ul class="${cls || ''}">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : '<div class="box"><span class="empty">None listed</span></div>';
+};
+const checklist = (x) => {
+  const items = (x || '').split('\n').map(s => s.trim()).filter(Boolean);
+  if (!items.length) return '<div class="box"><span class="empty">None listed</span></div>';
+  return `<table><tr><th>Critical action</th><th style="width:70px">Done</th><th style="width:90px">Time</th></tr>${items.map(i => `<tr><td>${escapeHtml(i)}</td><td><span class="check"></span></td><td></td></tr>`).join('')}</table>`;
+};
+
+const labels = key => (state[key] || []).map(id => (FW_ARRAYS[key].find(x => x.id === id) || {}).label).filter(Boolean);
+function grsTable(s) {
+  const dims = labels('grsDims');
+  if (!dims.length) return '<div class="box"><span class="empty">No GRS dimensions selected</span></div>';
+  const nums = Array.from({ length: GRS_SCALE }, (_, i) => i + 1);
+  return `<table class="grs"><tr><th>GRS dimension</th>${nums.map(n => `<th class="n">${n}</th>`).join('')}<th style="width:30%">Notes</th></tr>
+    ${dims.map(d => `<tr><td>${escapeHtml(d)}</td>${nums.map(() => '<td class="n"><span class="check"></span></td>').join('')}<td></td></tr>`).join('')}</table>
+    <div style="font-size:10px;color:#666;margin:-4px 0 8px">1 = unsafe / not performed · ${Math.ceil(GRS_SCALE / 2)} = competent with prompting · ${GRS_SCALE} = independent, exemplary. Rate against the selected program phase.</div>`;
+}
+
+function renderDoc() {
+  const s = state;
+  const ph = PROGRAM_PHASES.find(p => p.id === s.programPhase);
+  const obj = LEARNING_OBJECTIVES.find(o => o.id === s.objectiveId);
+  const cjfDebrief = (s.cjfSteps || []).slice().sort((a, b) => a - b).map(id => ({ step: CJF_STEPS.find(c => c.id === id), qs: CJF_DEBRIEF[id] || [] })).filter(x => x.step);
+  const usedVitals = VITALS.filter(([f]) => s.stages.some(st => st[f]));
+  const vitalsTable = usedVitals.length ? `
+    <table class="vitals">
+      <tr><th>Stage</th>${usedVitals.map(([, l]) => `<th>${l}</th>`).join('')}</tr>
+      ${s.stages.map(st => `<tr><td>${v(st.name)}</td>${usedVitals.map(([f]) => `<td>${st[f] ? escapeHtml(st[f]) : '—'}</td>`).join('')}</tr>`).join('')}
+    </table>` : '';
+
+  document.getElementById('doc').innerHTML = `
+    <div class="doc-head">
+      <div>
+        <div class="sim-banner">Simulation scenario — for training use only</div>
+        <h1>${s.title ? escapeHtml(s.title) : '<span class="empty">Untitled scenario</span>'}</h1>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#555">${s.author ? 'Author: ' + escapeHtml(s.author) + '<br>' : ''}${new Date().toLocaleDateString()}</div>
+    </div>
+    <div class="meta-grid">
+      <div><small>Level</small>${v(s.level)}</div>
+      <div><small>Category</small>${v(s.category)}</div>
+      <div><small>Program phase</small>${ph ? escapeHtml(ph.label) + ' · ' + ph.tier : '—'}</div>
+      <div><small>Run time</small>${v(s.duration)}</div>
+    </div>
+
+    <div class="avoid-break">
+      <h2>Framework alignment</h2>
+      <table>
+        <tr><th style="width:150px">Program phase</th><td>${ph ? escapeHtml(ph.label) + ' — ' + escapeHtml(ph.desc) : v('')}${ph ? ` <span class="tagline">(Bloom's: ${BLOOM[ph.id]})</span>` : ''}</td></tr>
+        <tr><th>Learning objective</th><td>${obj ? escapeHtml(obj.text) + ` <span class="tagline">(${obj.callPhase} · ${obj.bloom})</span>` : v('')}</td></tr>
+        <tr><th>Call phases</th><td>${v(labels('callPhases').join(', '))}</td></tr>
+        <tr><th>CJF steps targeted</th><td>${labels('cjfSteps').length ? labels('cjfSteps').map(escapeHtml).join('<br>') : v('')}</td></tr>
+        <tr><th>GRS dimensions</th><td>${v(labels('grsDims').join(', '))}</td></tr>
+        <tr><th>Enrichment</th><td>${v(labels('enrichment').join(', '))}${s.enrichNotes ? `<div style="white-space:pre-wrap;margin-top:4px">${escapeHtml(s.enrichNotes)}</div>` : ''}</td></tr>
+      </table>
+    </div>
+
+    <h2>Learning objectives</h2>${list(s.objectives)}
+
+    <div class="avoid-break">
+      <h2>Dispatch</h2>${box(s.dispatch)}
+      <table><tr><th style="width:50%">Location</th><th>Time / weather</th></tr><tr><td>${v(s.location)}</td><td>${v(s.conditions)}</td></tr></table>
+      <strong style="font-size:11px;text-transform:uppercase">Scene</strong>${box(s.scene)}
+    </div>
+
+    <div class="avoid-break">
+      <h2>Patient</h2>
+      <table>
+        <tr><th>Name</th><th>Age</th><th>Sex</th><th>Weight</th></tr>
+        <tr><td>${v(s.ptName)}</td><td>${v(s.ptAge)}</td><td>${v(s.ptSex)}</td><td>${v(s.ptWeight)}</td></tr>
+      </table>
+      <table>
+        <tr><th style="width:150px">Chief complaint</th><td>${v(s.cc)}</td></tr>
+        <tr><th>HPI</th><td style="white-space:pre-wrap">${v(s.hpi)}</td></tr>
+        <tr><th>Allergies</th><td>${v(s.allergies)}</td></tr>
+        <tr><th>Medications</th><td>${v(s.meds)}</td></tr>
+        <tr><th>Past history</th><td>${v(s.pmh)}</td></tr>
+        <tr><th>Last oral intake</th><td>${v(s.lastIntake)}</td></tr>
+        <tr><th>Exam findings</th><td style="white-space:pre-wrap">${v(s.exam)}</td></tr>
+      </table>
+    </div>
+
+    <h2>Progression</h2>
+    ${vitalsTable}
+    ${s.stages.map((st, i) => `
+      <div class="stage avoid-break">
+        <div class="stage-head"><span>${i + 1}. ${v(st.name)}${st.cjf ? `<span class="cjf">CJF ${escapeHtml(String(st.cjf))}</span>` : ''}</span><span style="font-weight:400">${[st.callPhase, st.trigger ? 'Trigger: ' + st.trigger : ''].filter(Boolean).map(escapeHtml).join(' · ')}</span></div>
+        <div class="stage-body">
+          ${st.rhythm ? `<div><strong>Rhythm:</strong> ${escapeHtml(st.rhythm)}</div>` : ''}
+          <div class="two">
+            <div><strong>Presentation</strong><div style="white-space:pre-wrap">${v(st.presentation)}</div></div>
+            <div><strong>Expected interventions</strong><div style="white-space:pre-wrap">${v(st.interventions)}</div></div>
+          </div>
+        </div>
+      </div>`).join('')}
+
+    <div class="avoid-break">
+      <h2>Evaluation</h2>
+      ${checklist(s.critical)}
+      <strong style="font-size:11px;text-transform:uppercase">Global Rating Scale</strong>
+      ${grsTable(s)}
+      <strong style="font-size:11px;text-transform:uppercase;color:#b00">Critical fails</strong>
+      ${list(s.fails, 'fail')}
+    </div>
+
+    <div class="avoid-break">
+      <h2>Setup</h2>
+      <div class="two">
+        <div><strong style="font-size:11px;text-transform:uppercase">Equipment</strong>${box(s.equipment)}</div>
+        <div><strong style="font-size:11px;text-transform:uppercase">Moulage &amp; actor</strong>${box(s.moulage)}</div>
+      </div>
+    </div>
+
+    <div class="avoid-break">
+      <h2>Debrief</h2>
+      ${cjfDebrief.map(x => `<strong style="font-size:11px;text-transform:uppercase">${escapeHtml(x.step.label)}</strong><ul>${x.qs.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul>`).join('')}
+      ${lines(s.debrief).length || !cjfDebrief.length ? `<strong style="font-size:11px;text-transform:uppercase">Scenario-specific</strong>${list(s.debrief)}` : ''}
+    </div>
+    <p style="font-size:10px;color:#888;margin-top:20px">Generated with EMS Sim Lab. Educational simulation material — not clinical guidance. Follow local protocols and medical direction.</p>`;
+}
+
+/* ---------- Scenario → Skills Evaluation Sheet ----------
+   Maps this scenario onto a sheet and hands it to tools/skills-sheet.html
+   through this browser's storage (key: emssim.skills.import). */
+const lines = t => (t || '').split('\n').map(x => x.trim()).filter(Boolean);
+function splitInterventions(t) {
+  t = (t || '').trim(); if (!t) return [];
+  const parts = t.includes('\n') ? t.split('\n') : t.split(/[;,]\s*/);
+  return parts.map(x => x.trim().replace(/\.$/, '')).filter(Boolean)
+              .map(x => x.charAt(0).toUpperCase() + x.slice(1));
+}
+// Skip a stage item when an earlier step already says the same thing
+// (e.g. "Primary assessment" vs "Performs a primary assessment ...").
+const norm = t => t.toLowerCase().replace(/[^a-z0-9₂]+/g, ' ').trim();
+function alreadyCovered(item, steps) {
+  const n = norm(item);
+  return n && steps.some(st => !st.section && norm(st.text).includes(n));
+}
+function scenarioToSheet(sc) {
+  const steps = [
+    { text: '# Scene & assessment', section: true },
+    { text: 'Takes or verbalizes PPE precautions and scene safety', pts: 1 },
+    { text: 'Performs a primary assessment (airway, breathing, circulation)', pts: 1 },
+    { text: 'Obtains a full set of vital signs', pts: 1 },
+    { text: 'Obtains a focused history', pts: 1 }
+  ];
+  const crit = lines(sc.critical);
+  if (crit.length) {
+    steps.push({ text: '# Critical actions', section: true });
+    crit.forEach(c => steps.push({ text: c, pts: 2 }));
+  }
+  (sc.stages || []).forEach((st, i) => {
+    const items = splitInterventions(st.interventions);
+    if (!items.length) return;
+    const head = `# Stage ${i + 1}: ${st.name || 'Stage'}` + (st.trigger && i > 0 ? ` (${st.trigger})` : '');
+    steps.push({ text: head, section: true });
+    items.forEach(it => { if (!alreadyCovered(it, steps)) steps.push({ text: it, pts: 1 }); });
+  });
+  const levels = ['EMR', 'EMT', 'AEMT', 'Paramedic'];
+  const prev = store.get('emssim.skills.draft') || {};
+  return {
+    org: prev.org || '',
+    skill: sc.title ? `Scenario: ${sc.title}` : 'Scenario evaluation',
+    level: levels.includes(sc.level) ? sc.level : (prev.level || 'EMT'),
+    timeLimit: sc.duration || '',
+    passScore: '',
+    instructions: (sc.dispatch ? sc.dispatch.trim() + ' ' : '') + 'Assess and manage this patient. Verbalize your findings and treatment decisions as you go.',
+    steps,
+    fails: sc.fails || '',
+    source: { title: sc.title || 'Untitled scenario', at: Date.now() }
+  };
+}
+function buildEvalSheet() {
+  const hasContent = lines(state.critical).length || (state.stages || []).some(st => splitInterventions(st.interventions).length);
+  if (!hasContent) { toast('Add critical actions or expected interventions first'); return; }
+  if (!store.set('emssim.skills.import', scenarioToSheet(state))) { toast('This browser blocked saving, so the sheet could not be built'); return; }
+  location.href = 'skills-sheet.html';
+}
+
+renderTopbar('../', 'home');
+setupFw();
+fillForm();
+renderDoc();
+</script>
+</body>
+</html>
