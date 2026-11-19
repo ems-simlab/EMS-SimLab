@@ -36,6 +36,8 @@ const TOOLS = [
     desc: 'State-specific legal directives and life-sustaining treatment orders for advance-directive scenarios.' },
   { title: 'Scenario Builder', icon: '📋', category: 'instructor', status: 'live', href: 'tools/scenario-builder.html',
     desc: 'Write a full sim scenario — dispatch, patient, vitals by stage, critical actions, debrief — and print it as an instructor packet.' },
+  { title: 'Framework Scenario Builder', icon: '📋', category: 'instructor', status: 'live', href: 'tools/framework-scenario-builder.html',
+    desc: 'Write a scenario by hand aligned to the program phase, Clinical Judgment Framework steps and GRS dimensions, and print a packet with a GRS rating sheet and CJF debrief prompts.' },
   { title: 'Skills Evaluation Sheet', icon: '✅', category: 'instructor', status: 'live', href: 'tools/skills-sheet.html',
     desc: 'Build a point-based skills check-off sheet with critical-fail criteria, then print copies for evaluators.' },
   { title: 'D20 Skill Roller', icon: '🎲', category: 'sim', status: 'live', href: 'tools/d20-roller.html',
