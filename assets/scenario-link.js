@@ -106,7 +106,12 @@
       if (!none) {
         const options = allergyBoxes.map(cb => cb.value);
         const extra = terms(sc.allergies).filter(t => !options.some(o => has(t, o)));
-        if (extra.length) missed.push(`Allergies not on this form: ${extra.map(esc).join(', ')}.`);
+        if (extra.length && typeof window.addCustomAllergy === 'function') {
+          extra.forEach(t => window.addCustomAllergy(t));
+          filled.push(`new allergy option${extra.length > 1 ? 's' : ''}: ${extra.map(esc).join(', ')}`);
+        } else if (extra.length) {
+          missed.push(`Allergies not on this form: ${extra.map(esc).join(', ')}.`);
+        }
       }
     }
 
