@@ -70,11 +70,14 @@
       <fieldset>
         <legend>Patient</legend>
         <div class="grid">
-          <div class="grid g4">
+          <div class="grid g2">
             <div><label>Name</label><input data-k="ptName"></div>
-            <div><label>Age</label><input data-k="ptAge"></div>
-            <div><label>Sex</label><input data-k="ptSex"></div>
-            <div><label>Weight</label><input data-k="ptWeight"></div>
+            <div><label>Date of birth</label><input type="date" data-k="ptDob"></div>
+          </div>
+          <div class="grid g3">
+            <div><label>Age <span style="text-transform:none;letter-spacing:0;font-weight:400" id="ageHint"></span></label><input data-k="ptAge"></div>
+            <div><label>Sex</label><select data-k="ptSex"><option value=""></option><option>Male</option><option>Female</option><option>Prefer not to say</option></select></div>
+            <div><label>Weight</label><input data-k="ptWeight" placeholder="e.g. 65 kg or 143 lb"></div>
           </div>
           <div><label>Chief complaint</label><input data-k="cc"></div>
           <div><label>History of present illness</label><textarea data-k="hpi"></textarea></div>
@@ -125,7 +128,7 @@ function blankStage(n) { return { name: 'Stage ' + n, trigger: '', rhythm: '', p
 function blank() {
   return { title:'', level:'EMT', category:'Medical', duration:'', author:'', objectives:'',
     dispatch:'', location:'', conditions:'', scene:'',
-    ptName:'', ptAge:'', ptSex:'', ptWeight:'', cc:'', hpi:'', allergies:'', meds:'', pmh:'', lastIntake:'', exam:'',
+    ptName:'', ptDob:'', ptAge:'', ptSex:'', ptWeight:'', cc:'', hpi:'', allergies:'', meds:'', pmh:'', lastIntake:'', exam:'',
     stages: [blankStage(1)], critical:'', fails:'', equipment:'', moulage:'', debrief:'' };
 }
 
@@ -135,7 +138,7 @@ const EXAMPLE = {
   dispatch: 'Medic 4, respond to Riverside Park pavilion for a 34-year-old female with difficulty breathing. Caller states she ate at a food truck. Time out 13:42.',
   location: 'Riverside Park, covered pavilion', conditions: 'Midday, 84°F, sunny',
   scene: 'Scene safe. Crowd of ~20 coworkers; one bystander is filming. Patient seated at picnic table in tripod position. Friend holding an empty food container.',
-  ptName: 'Dana Morales', ptAge: '34', ptSex: 'F', ptWeight: '65 kg', cc: '"My throat feels tight and I can\'t breathe."',
+  ptName: 'Dana Morales', ptDob: '1992-04-18', ptAge: '34', ptSex: 'Female', ptWeight: '65 kg', cc: '"My throat feels tight and I can\'t breathe."',
   hpi: 'Ate a shrimp taco ~10 minutes ago, unaware it contained shellfish. Itching began within minutes, followed by throat tightness, hives, and nausea. Left her auto-injector at home.',
   allergies: 'Shellfish (prior hives)', meds: 'Cetirizine PRN', pmh: 'Mild asthma', lastIntake: 'Shrimp taco, 13:30',
   exam: 'Diffuse urticaria to chest and arms. Lip and periorbital swelling. Audible wheezing, accessory muscle use. Speaks in 3–4 word sentences. Skin flushed, warm.',
@@ -160,15 +163,46 @@ let state = store.get(KEY) || blank();
 const form = document.getElementById('form');
 form.addEventListener('input', e => {
   const el = e.target;
-  if (el.dataset.k) state[el.dataset.k] = el.value;
+  if (el.dataset.k) { state[el.dataset.k] = el.value; if (el.dataset.k === 'ptDob') syncAge(); }
   else if (el.dataset.s !== undefined) state.stages[+el.dataset.s][el.dataset.f] = el.value;
   else return;
   save(); renderDoc();
 });
 
+/* Age follows the date of birth, measured from today: the same rule the
+   StatChart-Sim generators use, so every form shows the same age. */
+function ageFrom(dob) {
+  if (!dob) return '';
+  const t = new Date(), b = new Date(dob);
+  let a = t.getFullYear() - b.getFullYear();
+  const m = t.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--;
+  return a >= 0 ? String(a) : '';
+}
+function syncAge() {
+  const ageEl = form.querySelector('[data-k=ptAge]'), hint = document.getElementById('ageHint');
+  if (state.ptDob) { state.ptAge = ageFrom(state.ptDob); ageEl.value = state.ptAge; }
+  ageEl.readOnly = !!state.ptDob;
+  ageEl.style.opacity = state.ptDob ? .7 : 1;
+  hint.textContent = state.ptDob ? '(from date of birth)' : '';
+}
+// Older scenarios stored sex as free text such as "F" or "male".
+function normSex(v) {
+  const x = (v || '').trim().toLowerCase();
+  if (/^(f|female|woman)$/.test(x)) return 'Female';
+  if (/^(m|male|man)$/.test(x)) return 'Male';
+  return v || '';
+}
 function fillForm() {
+  state.ptSex = normSex(state.ptSex);
   form.querySelectorAll('[data-k]').forEach(el => { el.value = state[el.dataset.k] || (el.tagName === 'SELECT' ? el.options[0].value : ''); });
+  syncAge();
   renderStages();
+}
+function fmtDob(d) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-').map(Number);
+  return ['January','February','March','April','May','June','July','August','September','October','November','December'][m - 1] + ' ' + day + ', ' + y;
 }
 
 function renderStages() {
@@ -243,8 +277,8 @@ function renderDoc() {
     <div class="avoid-break">
       <h2>Patient</h2>
       <table>
-        <tr><th>Name</th><th>Age</th><th>Sex</th><th>Weight</th></tr>
-        <tr><td>${v(s.ptName)}</td><td>${v(s.ptAge)}</td><td>${v(s.ptSex)}</td><td>${v(s.ptWeight)}</td></tr>
+        <tr><th>Name</th><th>Date of birth</th><th>Age</th><th>Sex</th><th>Weight</th></tr>
+        <tr><td>${v(s.ptName)}</td><td>${v(fmtDob(s.ptDob))}</td><td>${v(s.ptAge)}</td><td>${v(s.ptSex)}</td><td>${v(s.ptWeight)}</td></tr>
       </table>
       <table>
         <tr><th style="width:150px">Chief complaint</th><td>${v(s.cc)}</td></tr>

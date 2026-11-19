@@ -17,6 +17,8 @@ Every tool is a plain HTML page. There's no server, no database, no build step, 
 * **[MARS](./statchart-sim/MARS/)** — multi-day medication administration records with compliance presets and instructor-only error flags.
 * **[DNR / POLST / MOLST](./statchart-sim/Legal/)** — state-specific advance directive and life-sustaining treatment forms (currently Wisconsin).
 
+Each generator has a **Pull from scenario** button that fills in the patient's name, date of birth, gender, allergies and medications from the scenario open in the Scenario Builder, so every document matches.
+
 StatChart-Sim is adapted from the original [StatChart-Sim](https://github.com/ems-simlab/StatChart-Sim) project.
 
 ### Instructor tools

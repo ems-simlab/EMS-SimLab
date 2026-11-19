@@ -26,46 +26,37 @@
   @media (prefers-reduced-motion: reduce) { .ecg path { animation: none; stroke-dashoffset: 0; } }
   @media (max-width: 800px) { .hero { grid-template-columns: 1fr; padding: 28px; } .hero h1 { font-size: 2.2rem; } }
 
-  .sec-title { margin: 0 0 14px; }
-  .sec-title h2 { margin: 0 0 4px; font-size: 1.8rem; text-transform: uppercase; }
-  .sec-title p { margin: 0; color: var(--muted); }
+  /* Jump-to row under the hero */
+  .jump { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -14px 0 30px; }
+  .jump span { color: var(--muted); font-size: .85rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
+  .jump a { font: 600 .88rem var(--font); color: var(--text); text-decoration: none; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); }
+  .jump a:hover { border-color: var(--accent, var(--muted)); }
+  .jump a i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 7px; vertical-align: 1px; }
 
-  /* Featured sections (sub-sites inside EMS Sim Lab) */
-  .sections { display: grid; gap: 16px; margin-bottom: 44px; }
-  .feature {
-    display: grid; grid-template-columns: 96px 1fr auto; gap: 22px; align-items: center;
-    background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--amber);
-    border-radius: var(--radius); padding: 22px 24px;
-  }
-  .feature img { width: 96px; height: 96px; }
-  .feature h3 { margin: 0 0 4px; font-size: 1.7rem; text-transform: uppercase; }
-  .feature .kicker { color: var(--amber); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
-  .feature p { margin: 0 0 10px; color: var(--muted); max-width: 64ch; }
-  .feature .links { display: flex; flex-wrap: wrap; gap: 8px; }
-  .feature .links a { font-size: .85rem; color: var(--text); text-decoration: none; border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; background: var(--panel-2); }
-  .feature .links a:hover { border-color: var(--muted); }
-  .feature .open { padding: 11px 18px; font-size: .98rem; white-space: nowrap; }
-  @media (max-width: 800px) { .feature { grid-template-columns: 1fr; } .feature img { width: 64px; height: 64px; } }
+  /* Section panels (built from CATEGORIES in tools.js) */
+  .tsections { display: grid; gap: 22px; }
+  .tsec { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: var(--radius); padding: 22px 24px 24px; scroll-margin-top: 80px; }
+  .tsec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tsec-head h2 { margin: 0 0 4px; font-size: 1.75rem; text-transform: uppercase; }
+  .tsec-head h2 i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--accent); margin-right: 10px; vertical-align: 3px; }
+  .tsec-head p { margin: 0; color: var(--muted); max-width: 70ch; }
+  .tsec-head .count { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 
-  .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
-  .filters input { max-width: 300px; }
-  .chip { font: 600 .85rem var(--font); padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
-  .chip:hover { color: var(--text); }
-  .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .tfeature { display: grid; grid-template-columns: 72px 1fr auto; gap: 18px; align-items: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; }
+  .tfeature img { width: 72px; height: 72px; }
+  .tfeature h3 { margin: 0 0 2px; font-size: 1.4rem; text-transform: uppercase; }
+  .tfeature p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .tfeature .btn { padding: 10px 16px; white-space: nowrap; }
+  @media (max-width: 760px) { .tfeature { grid-template-columns: 56px 1fr; } .tfeature img { width: 56px; height: 56px; } .tfeature .btn { grid-column: 1 / -1; justify-content: center; } }
 
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
-  .card {
-    display: flex; flex-direction: column; gap: 10px;
-    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 20px; text-decoration: none; color: var(--text);
-    transition: border-color .15s, transform .15s;
-  }
-  a.card:hover { border-color: var(--red); transform: translateY(-2px); }
-  .card.disabled { opacity: .5; }
-  .card .icon { width: 44px; height: 44px; border-radius: 9px; display: grid; place-items: center; background: var(--panel-2); font-size: 1.35rem; }
-  .card h3 { margin: 0; font-size: 1.35rem; }
-  .card p { margin: 0; color: var(--muted); font-size: .94rem; flex: 1; }
-  .empty-state { color: var(--muted); padding: 30px; text-align: center; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .tile { display: grid; grid-template-columns: 40px 1fr; gap: 4px 12px; align-content: start; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; text-decoration: none; color: var(--text); transition: border-color .15s, transform .15s; }
+  a.tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .tile .icon { grid-row: span 2; width: 40px; height: 40px; border-radius: 9px; display: grid; place-items: center; background: var(--panel-2); font-size: 1.2rem; }
+  .tile h3 { margin: 0; font-size: 1.15rem; }
+  .tile p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+  .tile.soon { opacity: .5; }
+  .tile .soon-tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-left: 6px; vertical-align: 2px; }
 
   .notice { border-left: 4px solid var(--red); margin-top: 44px; }
   .notice p { color: var(--muted); margin: 0 0 8px; }
@@ -92,33 +83,9 @@
     </svg>
   </section>
 
-  <!-- Sections: larger tool collections with their own pages -->
-  <div class="sec-title"><h2>Sections</h2><p>Collections of related tools, each with its own home page.</p></div>
-  <div class="sections">
-    <article class="feature">
-      <img src="statchart-sim/assets/logo.svg" alt="StatChart-Sim logo">
-      <div>
-        <div class="kicker">Patient paperwork</div>
-        <h3>StatChart-Sim</h3>
-        <p>Paperwork for patients who don't exist: discharge summaries, medication administration records and end-of-life orders your students will find on scene.</p>
-        <div class="links">
-          <a href="statchart-sim/discharge-summary/index.html">Discharge Summaries</a>
-          <a href="statchart-sim/MARS/index.html">MARS</a>
-          <a href="statchart-sim/Legal/index.html">DNR / POLST / MOLST</a>
-        </div>
-      </div>
-      <a class="btn primary open" href="statchart-sim/index.html">Open StatChart-Sim →</a>
-    </article>
-  </div>
-
-  <section id="tools">
-    <div class="sec-title"><h2>All tools</h2></div>
-    <div class="filters">
-      <input id="q" type="search" placeholder="Search tools…" aria-label="Search tools">
-      <div id="chips"></div>
-    </div>
-    <div id="cards" class="cards"></div>
-  </section>
+  <!-- Sections and their tools are built from tools.js -->
+  <nav class="jump" id="jump" aria-label="Jump to a section"></nav>
+  <div class="tsections" id="tools"></div>
 
   <section id="about" class="panel notice">
     <h2>About EMS Sim Lab</h2>
@@ -141,44 +108,50 @@
 <script src="assets/common.js"></script>
 <script src="tools.js"></script>
 <script>
+const sectionsEl = document.getElementById('tools'), jumpEl = document.getElementById('jump');
+
 if (typeof TOOLS === 'undefined' || typeof CATEGORIES === 'undefined') {
-  window.TOOLS = []; window.CATEGORIES = {};
-  document.getElementById('cards').outerHTML = '<div class="panel" style="border-color:var(--red)"><strong>The tool list didn\'t load.</strong> <span class="muted">There\'s probably a typo in <code>tools.js</code>, such as a missing comma, quote or bracket. Undo your last change there, or check your browser\'s developer console for the line number.</span></div><div id="cards"></div>';
-}
-let activeCat = 'all';
-const chipsEl = document.getElementById('chips');
-const cardsEl = document.getElementById('cards');
-const qEl = document.getElementById('q');
-
-function renderChips() {
-  const opts = [['all', 'All']].concat(Object.entries(CATEGORIES).map(([k, v]) => [k, v.label]));
-  chipsEl.innerHTML = opts.map(([k, l]) =>
-    `<button class="chip ${k === activeCat ? 'on' : ''}" data-cat="${k}">${l}</button>`).join(' ');
+  sectionsEl.innerHTML = '<div class="panel" style="border-color:var(--red)"><strong>The tool list didn\'t load.</strong> <span class="muted">There\'s probably a typo in <code>tools.js</code>, such as a missing comma, quote or bracket. Undo your last change there, or check your browser\'s developer console for the line number.</span></div>';
+} else {
+  renderSections();
 }
 
-function renderCards() {
-  const q = qEl.value.trim().toLowerCase();
-  const list = TOOLS.filter(t =>
-    (activeCat === 'all' || t.category === activeCat) &&
-    (!q || (t.title + ' ' + t.desc).toLowerCase().includes(q)));
-  if (!list.length) { cardsEl.innerHTML = TOOLS.length ? '<div class="empty-state">No tools match that search.</div>' : ''; return; }
-  cardsEl.innerHTML = list.map(t => {
-    const cat = CATEGORIES[t.category];
-    const live = t.status === 'live';
-    const tag = live ? `<span class="tag ${cat.tag}">${cat.label}</span>` : '<span class="tag soon">Coming soon</span>';
-    const inner = `<div class="icon">${t.icon}</div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.desc)}</p><div>${tag}</div>`;
-    return live ? `<a class="card" href="${t.href}">${inner}</a>` : `<div class="card disabled">${inner}</div>`;
+function renderSections() {
+  const sections = Object.entries(CATEGORIES)
+    .map(([key, cat]) => ({ key, cat, tools: TOOLS.filter(t => t.category === key) }))
+    .filter(s => s.tools.length || s.cat.feature);
+
+  jumpEl.innerHTML = '<span>Jump to</span>' + sections.map(s =>
+    `<a href="#sec-${s.key}" style="--accent:${s.cat.accent || 'var(--muted)'}"><i></i>${escapeHtml(s.cat.label || s.key)}</a>`).join('');
+
+  sectionsEl.innerHTML = sections.map(({ key, cat, tools }) => {
+    const live = tools.filter(t => t.status === 'live').length;
+    const feature = cat.feature ? `
+      <div class="tfeature">
+        <img src="${cat.feature.logo}" alt="${escapeHtml(cat.feature.title)} logo">
+        <div><h3>${escapeHtml(cat.feature.title)}</h3><p>${escapeHtml(cat.feature.text || '')}</p></div>
+        <a class="btn primary" href="${cat.feature.href}">Open ${escapeHtml(cat.feature.title)} →</a>
+      </div>` : '';
+    const tiles = tools.map(t => {
+      const soon = t.status !== 'live';
+      const inner = `<div class="icon">${t.icon || '🧰'}</div>
+        <h3>${escapeHtml(t.title)}${soon ? '<span class="soon-tag">Coming soon</span>' : ''}</h3>
+        <p>${escapeHtml(t.desc || '')}</p>`;
+      return soon ? `<div class="tile soon">${inner}</div>` : `<a class="tile" href="${t.href}">${inner}</a>`;
+    }).join('');
+    return `
+    <section class="tsec" id="sec-${key}" style="--accent:${cat.accent || 'var(--muted)'}">
+      <div class="tsec-head">
+        <div><h2><i></i>${escapeHtml(cat.label || key)}</h2>${cat.desc ? `<p>${escapeHtml(cat.desc)}</p>` : ''}</div>
+        <span class="count">${live ? `${live} ${live === 1 ? 'tool' : 'tools'}${tools.length > live ? ` · ${tools.length - live} coming soon` : ''}` : 'Coming soon'}</span>
+      </div>
+      ${feature}
+      ${tools.length ? `<div class="tiles">${tiles}</div>` : ''}
+    </section>`;
   }).join('');
 }
 
-chipsEl.addEventListener('click', e => {
-  const b = e.target.closest('[data-cat]'); if (!b) return;
-  activeCat = b.dataset.cat; renderChips(); renderCards();
-});
-qEl.addEventListener('input', renderCards);
-
 renderTopbar('', 'home');
-renderChips(); renderCards();
 </script>
 </body>
 </html>

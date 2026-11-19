@@ -142,6 +142,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 </style>
 <link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../assets/tool-theme.css">
+<script src="../../assets/scenario-link.js"></script>
 </head>
 <body>
 
@@ -155,6 +156,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   </div>
   <div class="header-actions">
     <a class="back-link" href="../index.html">← StatChart-Sim</a>
+    <button class="btn btn-outline" type="button" onclick="pullFromScenario()" title="Fill the patient details from the scenario open in the Scenario Builder">⇩ Pull from scenario</button>
     <button class="btn btn-outline" onclick="resetForm()">↺ Reset</button>
     <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
   </div>

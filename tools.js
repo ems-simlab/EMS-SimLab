@@ -11,20 +11,44 @@
    Fields:
      title     Card heading
      icon      An emoji
-     category  One of the keys in CATEGORIES (statchart, instructor, sim, ref)
+     category  Which section it appears in: a key from CATEGORIES
+               (statchart, instructor, sim, ref)
      status    'live' = clickable card, 'soon' = greyed-out "Coming soon"
      href      Path to the page (only needed when status is 'live')
      desc      One or two sentences shown on the card
+
+   SECTIONS: each key in CATEGORIES is a section panel on the home page,
+   shown in the order listed. A section shows every tool whose category
+   matches its key; sections with no tools are hidden. Section fields:
+     label    Section heading            accent   Color (hex) for the panel
+     desc     One-line description       feature  Optional banner for a
+                                                  sub-site (see statchart)
+   To add a section, copy one of the CATEGORIES entries and give it a new
+   key, then set that key as the category of the tools that belong in it.
 
    Watch the punctuation: each entry is wrapped in { }, text goes in
    'single quotes', and entries are separated by commas.
    ===================================================================== */
 
 const CATEGORIES = {
-  statchart:  { label: 'StatChart-Sim',   tag: 'doc' },
-  instructor: { label: 'Instructor Docs', tag: 'doc' },
-  sim:        { label: 'Sim Running',     tag: 'sim' },
-  ref:        { label: 'Reference',       tag: 'ref' }
+  statchart: {
+    label: 'Patient Paperwork', accent: '#f4a259',
+    desc: 'Simulated documents for students to find on scene: discharge summaries, medication records and end-of-life orders.',
+    feature: { title: 'StatChart-Sim', logo: 'statchart-sim/assets/logo.svg', href: 'statchart-sim/index.html',
+               text: 'Paperwork for patients who don\'t exist. Each generator can pull the patient\'s details from your scenario, so every document matches.' }
+  },
+  instructor: {
+    label: 'Instructor Docs', accent: '#4ea8de',
+    desc: 'Plan and evaluate: build scenarios, align them to your program\'s framework, and print evaluation sheets.'
+  },
+  sim: {
+    label: 'Sim Running', accent: '#4cc38a',
+    desc: 'Tools to use while a scenario is running.'
+  },
+  ref: {
+    label: 'Reference', accent: '#b39ddb',
+    desc: 'Quick references for before and after the run.'
+  }
 };
 
 const TOOLS = [

@@ -44,6 +44,10 @@ a { color: var(--blue); }
 .topbar nav { margin-left: auto; display: flex; gap: 18px; }
 .topbar nav a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; }
 .topbar nav a:hover, .topbar nav a.active { color: var(--text); }
+@media (max-width: 560px) {
+  .topbar { flex-wrap: wrap; gap: 6px 16px; padding: 10px 16px; }
+  .topbar nav { margin-left: 0; width: 100%; gap: 16px; }
+}
 
 .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }
 
