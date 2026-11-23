@@ -119,6 +119,16 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .mars-cell.mars-last-day{border:1.5px solid #a93226!important;background:rgba(169,50,38,.03)}
 .mars-init{font-weight:700;font-size:7pt;color:var(--navy)}
 .mars-circle{color:#bbb;font-size:11pt;line-height:1;display:block;margin-top:-1px}
+/* Full-month view: 28-31 narrow day columns */
+.mars-month .mars-th-med{min-width:150px}
+.mars-month .mars-day-head{width:auto;min-width:0;font-size:5.6pt;padding:2px 0;line-height:1.15}
+.mars-month .mars-wk{font-weight:400;opacity:.75}
+.mars-month .mars-cell{height:16px;padding:0}
+.mars-month .mars-init{font-size:5.2pt;letter-spacing:-.2px}
+.mars-month .mars-circle{font-size:8pt}
+.mars-month .mars-pending-sym{font-size:8pt}
+.mars-month .scenario-day-tag{font-size:4.4pt}
+.mars-month .mars-future{background:#fafafa}
 .mars-err-flag{margin-left:3px;font-size:7pt}
 .mars-section-head{font-family:var(--font-ui);font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);border-bottom:1.5px solid var(--navy);padding-bottom:3px;margin:10px 0 6px}
 .mars-prn-table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:10px}
@@ -191,7 +201,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Simulation Date <span class="hint">(Day 7 of MARS)</span></label>
+          <label>Simulation Date <span class="hint">(last day recorded)</span></label>
           <input type="date" id="simDate" onchange="liveRender()">
         </div>
         <div class="field">
@@ -201,6 +211,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             <option>Male</option><option>Female</option><option>Prefer not to say</option>
           </select>
         </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Weight <span class="hint">(lb)</span></label>
+          <input type="number" id="weight" min="1" max="1000" step="1" placeholder="e.g. 181" oninput="liveRender()">
+        </div>
+        <div class="field"></div>
       </div>
     </div>
 
@@ -293,7 +310,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           <option value="mostly" selected>Mostly Compliant — ~75–80% taken</option>
           <option value="noncompliant">Non-Compliant — ~40–50%, worsening</option>
         </select>
-        <div class="field-note"><b>Non-Compliant</b> clusters missed doses in the last 2 days — the deterioration story leading to the sim event on Day 7.</div>
+        <div class="field-note"><b>Non-Compliant</b> clusters missed doses in the 2 days before the sim day — the deterioration story leading to the sim event.</div>
+      </div>
+      <div class="field">
+        <label>Record Period</label>
+        <select id="marsPeriod" onchange="liveRender()">
+          <option value="week" selected>7-day summary (ends on the sim day)</option>
+          <option value="month">Full month (calendar month of the sim day)</option>
+        </select>
+        <div class="field-note"><b>Full month</b> shows every day of the month; days after the sim day are left blank, like a real monthly MAR partway through the month.</div>
       </div>
       <div class="field">
         <label>Staff / Caregiver Initials <span class="hint">(shown in administered cells)</span></label>
@@ -601,8 +626,9 @@ function prnReason(freq,dx=''){const f=freq.toLowerCase();if(/insomnia/i.test(dx
 function prnResult(freq,dx=''){const f=freq.toLowerCase();if(/insomnia/i.test(dx))return'Slept, no distress';if(f.includes('pain'))return'Mild relief reported';if(f.includes('nausea'))return'Nausea improved';if(f.includes('wheez'))return'Partial relief noted';if(f.includes('chest'))return'Discomfort resolved';if(f.includes('anxiety'))return'Patient calmer';return'Tolerated well'}
 function dayHead(d,isLast){const n=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];const dt=`${d.getMonth()+1}/${d.getDate()}`;return isLast?`<th class="mars-day-head mars-scenario-day">${n}<br>${dt}<br><span class="scenario-day-tag">SIM DAY</span></th>`:`<th class="mars-day-head">${n}<br>${dt}</th>`}
 
+function dayHeadSm(d,isSim){const w='SMTWTFS'[d.getDay()];return`<th class="mars-day-head mars-day-sm${isSim?' mars-scenario-day':''}">${d.getDate()}<br><span class="mars-wk">${w}</span>${isSim?'<br><span class="scenario-day-tag">SIM</span>':''}</th>`}
+
 function generateMARS(){
-  const DAYS=7;
   updateTargetDxInfo();
   const meds=buildMedList(getTargetMeds(),document.getElementById('medNoise').value,document.querySelector('input[name=medError]:checked')?.value||'none',document.getElementById('patientName').value||'');
   const compliance=document.getElementById('marsCompliance').value;
@@ -614,6 +640,8 @@ function generateMARS(){
   const dob=fmtDate(document.getElementById('dob').value)||'—';
   const ageDisplay=document.getElementById('ageDisplay').value;
   const gender=document.getElementById('gender').value;
+  const wtLb=parseFloat(document.getElementById('weight').value);
+  const wtText=wtLb>0?`${Math.round(wtLb)} lb (${(wtLb/2.20462).toFixed(1)} kg)`:'';
   const provider=document.getElementById('provider').value||'—';
   const facility=document.getElementById('facilityName').value||'Simulation Facility';
   const recordNum=document.getElementById('recordNum').value||genRecord()||document.getElementById('recordNum').value;
@@ -628,8 +656,18 @@ function generateMARS(){
   let simD;
   const sd=document.getElementById('simDate').value;
   if(sd){simD=new Date(sd+'T12:00:00');}else{simD=new Date();}
-  const baseDate=new Date(simD);baseDate.setDate(simD.getDate()-6);
-  const days=Array.from({length:DAYS},(_,i)=>{const d=new Date(baseDate);d.setDate(baseDate.getDate()+i);return d;});
+  // Record period: 7 days ending on the sim day, or the whole calendar month of the sim day.
+  // SIM = index of the sim day; days after it (month view) are left blank.
+  const period=document.getElementById('marsPeriod')?.value||'week';
+  let days;
+  if(period==='month'){
+    const y=simD.getFullYear(),m=simD.getMonth(),n=new Date(y,m+1,0).getDate();
+    days=Array.from({length:n},(_,i)=>new Date(y,m,i+1,12));
+  }else{
+    const baseDate=new Date(simD);baseDate.setDate(simD.getDate()-6);
+    days=Array.from({length:7},(_,i)=>{const d=new Date(baseDate);d.setDate(baseDate.getDate()+i);return d;});
+  }
+  const DAYS=days.length, SIM=period==='month'?simD.getDate()-1:DAYS-1;
 
   const seed=strHash(patientName+compliance+meds.map(m=>m.name).join(''));
   const rng=makeSRNG(seed);
@@ -641,25 +679,25 @@ function generateMARS(){
     if(isPRN){
       const cnt=compliance==='compliant'?Math.floor(rng()*2):compliance==='mostly'?Math.floor(rng()*3)+1:Math.floor(rng()*4)+2;
       for(let i=0;i<cnt;i++){
-        const di=compliance==='noncompliant'?DAYS-1-Math.floor(rng()*2):Math.floor(rng()*DAYS);
+        const di=compliance==='noncompliant'?Math.max(0,SIM-Math.floor(rng()*2)):Math.floor(rng()*(SIM+1));
         const hr=Math.floor(rng()*16)+6,mn=Math.floor(rng()*6)*10;
-        if(di===DAYS-1&&(hr*100+mn)>=callTimeInt)continue;
+        if(di===SIM&&(hr*100+mn)>=callTimeInt)continue;
         prnLog.push({di,date:days[di],time:`${String(hr).padStart(2,'0')}${String(mn).padStart(2,'0')}`,name:med.name,dose:med.doseStr+' '+med.route,reason:prnReason(med.freq,med.dx),result:prnResult(med.freq,med.dx),initials});
       }
       return;
     }
     if(!times.length)return;
-    const given=times.map(t=>Array.from({length:DAYS},(_,di)=>{if(di===DAYS-1&&parseInt(t)>=callTimeInt)return null;const late=di>=DAYS-2,eve=parseInt(t)>=1800;const p=compliance==='compliant'?0.96:compliance==='mostly'?(eve?0.74:0.82):(late?0.28:0.54);return rng()<p;}));
+    const given=times.map(t=>Array.from({length:DAYS},(_,di)=>{if(di>SIM)return undefined;if(di===SIM&&parseInt(t)>=callTimeInt)return null;const late=di>=SIM-1,eve=parseInt(t)>=1800;const p=compliance==='compliant'?0.96:compliance==='mostly'?(eve?0.74:0.82):(late?0.28:0.54);return rng()<p;}));
     medRows.push({name:med.name,dx:med.dx,dose:med.doseStr,route:med.route,times,given,isTarget:med.isTarget,errored:med.errored});
   });
   prnLog.sort((a,b)=>a.di-b.di||a.time.localeCompare(b.time));
 
   const compLabel={compliant:'Compliant (≥95%)',mostly:'Mostly Compliant (~75-80%)',noncompliant:'Non-Compliant (~40-50%, worsening)'};
-  const dayHeads=days.map((d,i)=>dayHead(d,i===DAYS-1)).join('');
+  const dayHeads=days.map((d,i)=>period==='month'?dayHeadSm(d,i===SIM):dayHead(d,i===SIM)).join('');
 
   let medHTML='';
   if(!medRows.length){
-    medHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:#888;font-style:italic">No scheduled medications. Select target meds and regenerate.</td></tr>';
+    medHTML=`<tr><td colspan="${3+DAYS}" style="text-align:center;padding:16px;color:#888;font-style:italic">No scheduled medications. Select target meds and regenerate.</td></tr>`;
   } else {
     medRows.forEach(med=>{
       const rs=med.times.length;
@@ -668,10 +706,10 @@ function generateMARS(){
         medHTML+=`<tr class="${med.isTarget?'mars-target':''}">`;
         if(ti===0){medHTML+=`<td rowspan="${rs}" class="mars-med-name">${esc(med.name)}${flag}<span class="mars-med-dose">${esc(med.dose)}</span></td><td rowspan="${rs}" class="mars-route">${esc(med.route)}</td>`;}
         medHTML+=`<td class="mars-time">${t}</td>`;
-        for(let di=0;di<DAYS;di++){const ok=med.given[ti][di];const isPend=ok===null;const cls=`mars-cell${di===DAYS-1?' mars-last-day':''}${isPend?' mars-pending':(!ok?' mars-miss':'')}`;const content=isPend?'<span class="mars-pending-sym">—</span>':ok?`<span class="mars-init">${esc(initials)}</span>`:'<span class="mars-circle">○</span>';medHTML+=`<td class="${cls}">${content}</td>`;}
+        for(let di=0;di<DAYS;di++){const ok=med.given[ti][di];if(ok===undefined){medHTML+='<td class="mars-cell mars-future"></td>';continue;}const isPend=ok===null;const cls=`mars-cell${di===SIM?' mars-last-day':''}${isPend?' mars-pending':(!ok?' mars-miss':'')}`;const content=isPend?'<span class="mars-pending-sym">—</span>':ok?`<span class="mars-init">${esc(initials)}</span>`:'<span class="mars-circle">○</span>';medHTML+=`<td class="${cls}">${content}</td>`;}
         medHTML+='</tr>';
       });
-      medHTML+='<tr class="mars-sep-row"><td colspan="10"></td></tr>';
+      medHTML+=`<tr class="mars-sep-row"><td colspan="${3+DAYS}"></td></tr>`;
     });
   }
 
@@ -679,9 +717,9 @@ function generateMARS(){
   if(!prnLog.length){prnHTML='<tr><td colspan="6" style="text-align:center;color:#888;padding:8px;font-style:italic">No PRN administrations recorded.</td></tr>';}
   else{prnLog.forEach(p=>{const ds=`${p.date.getMonth()+1}/${p.date.getDate()}`;prnHTML+=`<tr><td>${esc(ds)}</td><td>${esc(p.time)}</td><td>${esc(p.name)}<br><span style="font-size:6.5pt;color:#555">${esc(p.dose)}</span></td><td>${esc(p.reason)}</td><td>${esc(p.result)}</td><td class="prn-init">${esc(p.initials)}</td></tr>`;});}
 
-  let tot=0,miss=0;medRows.forEach(m=>m.times.forEach((_,ti)=>m.given[ti].forEach(g=>{tot++;if(!g)miss++;})));
+  let tot=0,miss=0;medRows.forEach(m=>m.times.forEach((_,ti)=>m.given[ti].forEach(g=>{if(g===true||g===false){tot++;if(!g)miss++;}})));
   const missRate=tot?Math.round(miss/tot*100):0;
-  const dateRange=`${(days[0].getMonth()+1)}/${days[0].getDate()} – ${(days[DAYS-1].getMonth()+1)}/${days[DAYS-1].getDate()}`;
+  const dateRange=`${(days[0].getMonth()+1)}/${days[0].getDate()} – ${(days[SIM].getMonth()+1)}/${days[SIM].getDate()}`;
   const mo=days[0].toLocaleString('default',{month:'long'})+' '+days[0].getFullYear();
 
   document.getElementById('previewContent').innerHTML=`
@@ -690,13 +728,13 @@ function generateMARS(){
     <div class="mars-header">
       <div class="mars-header-left">
         <div class="mars-doc-title">Medication Administration Record</div>
-        <div class="mars-subtitle">7-Day Administration Summary · EMS Simulation Document</div>
+        <div class="mars-subtitle">${period==='month'?'Monthly Administration Record · '+esc(mo):'7-Day Administration Summary'} · EMS Simulation Document</div>
         <hr class="mars-divider">
         <table class="mars-info-table">
           <tr>
             <td><b>Patient Name:</b> ${esc(patientName)}</td>
             <td><b>DOB:</b> ${esc(dob)}</td>
-            <td><b>Age / Sex:</b> ${esc(ageDisplay||'—')}${gender?' / '+esc(gender):''}</td>
+            <td><b>Age / Sex / Wt:</b> ${esc(ageDisplay||'—')}${gender?' / '+esc(gender):''}${wtText?' / '+esc(wtText):''}</td>
           </tr>
           <tr>
             <td><b>Record #:</b> ${esc(recordNum)}</td>
@@ -722,7 +760,7 @@ function generateMARS(){
       <span><b>Compliance Profile:</b> ${compLabel[compliance]}</span>
       <span class="screen-flag">&nbsp;${missRate}% doses missed (${miss}/${tot}) · instructor view only</span>
     </div>
-    <table class="mars-table">
+    <table class="mars-table${period==='month'?' mars-month':''}">
       <thead><tr>
         <th class="mars-th-med">Medication / Dose</th>
         <th class="mars-th-rt">Rt</th>
@@ -737,7 +775,7 @@ function generateMARS(){
       <tbody>${prnHTML}</tbody>
     </table>
     <div class="mars-legend">
-      <b>Legend:</b> &nbsp; Initials = Dose administered &nbsp;|&nbsp; ○ = Dose not given (compliance) &nbsp;|&nbsp; — = Not yet due at time of call &nbsp;|&nbsp; Shaded rows = Target/anchor medications &nbsp;|&nbsp; Red column = Sim day (Day 7) &nbsp;|&nbsp; EMS call time: ${callTimeLabel} &nbsp;|&nbsp; Date range: ${dateRange}
+      <b>Legend:</b> &nbsp; Initials = Dose administered &nbsp;|&nbsp; ○ = Dose not given (compliance) &nbsp;|&nbsp; — = Not yet due at time of call &nbsp;|&nbsp; Shaded rows = Target/anchor medications &nbsp;|&nbsp; Red column = Sim day${period==='month'?' &nbsp;|&nbsp; Blank = after the sim day':''} &nbsp;|&nbsp; EMS call time: ${callTimeLabel} &nbsp;|&nbsp; Date range: ${dateRange}
     </div>
     <div class="doc-footer">StatChart-Sim — Simulation Document · NOT a real medical record · For training use only</div>
   </div>`;
